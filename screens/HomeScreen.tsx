@@ -8,7 +8,6 @@ import {
   Icon,
   Skeleton,
   HStack,
-  FlatList,
   ScrollView,
   Divider,
   Pressable,
@@ -51,6 +50,7 @@ import { setActiveWalletAction, setMonthAction, setYearAction } from "../redux/u
 import MonthYearPickerModal from "../components/MonthYearPickerModal";
 import WalletPickerSheet from "../components/WalletPickerSheet";
 import GroupedTransactionList from "../components/GroupedTransactionList";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WalletService } from "../api/services/WalletService";
 
 interface HomeScreenProps {
@@ -60,6 +60,7 @@ interface HomeScreenProps {
 const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const isFocused = useIsFocused();
   const dispatch = useDispatch();
+  const insets = useSafeAreaInsets();
   const [loading, setLoading] = useState<boolean>(false);
   const [pickerOpen, setPickerOpen] = useState<boolean>(false);
   const [walletSheetOpen, setWalletSheetOpen] = useState<boolean>(false);
@@ -89,14 +90,19 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   useLayoutEffect(() => {
     navigation.setOptions({
       header: () => (
-        <View style={{ height: 138 }}>
+        <View style={{ height: 138 + insets.top }}>
           <LinearGradient
             colors={
               user.theme === "light"
                 ? [COLORS.PURPLE[900], COLORS.PURPLE[600]]
                 : ["#111827", "#1f2937"]
             }
-            style={{ flex: 1, display: "flex", justifyContent: "flex-end" }}
+            style={{
+              flex: 1,
+              display: "flex",
+              justifyContent: "flex-end",
+              paddingTop: insets.top,
+            }}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 1 }}>
             <VStack space={3} pb={4}>
@@ -165,7 +171,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </View>
       ),
     });
-  }, [navigation, todayTotal, loading, user.month, user.year, user.activeWalletId, wallets]);
+  }, [navigation, todayTotal, loading, user.month, user.year, user.activeWalletId, wallets, insets.top, user.theme]);
 
   useEffect(() => {
     if (!expenses.length) {
@@ -488,22 +494,22 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 </HStack>
 
                 {monthlyBudgets.length > 0 ? (
-                  <FlatList
+                  <ScrollView
+                    horizontal
                     showsHorizontalScrollIndicator={false}
                     mx={-7}
                     style={{ paddingTop: 5, paddingBottom: 10 }}
-                    contentContainerStyle={{ paddingHorizontal: 28 }}
-                    ItemSeparatorComponent={() => <View p="10px" />}
-                    horizontal={true}
-                    data={parentBudgets}
-                    keyExtractor={(item: any) => item.id}
-                    renderItem={({ item }) => (
-                      <MonthlyBudgetCategory
-                        budget={item}
-                        monthlyTotal={getCategoryMonthlyTotal(item.category!)}
-                      />
-                    )}
-                  />
+                    contentContainerStyle={{ paddingHorizontal: 28 }}>
+                    <HStack space="20px">
+                      {(parentBudgets as any[]).map((item: any) => (
+                        <MonthlyBudgetCategory
+                          key={item.id}
+                          budget={item}
+                          monthlyTotal={getCategoryMonthlyTotal(item.category!)}
+                        />
+                      ))}
+                    </HStack>
+                  </ScrollView>
                 ) : (
                   <VStack alignItems="center" space={2}>
                     <SetBudget width={180} height={120} />
