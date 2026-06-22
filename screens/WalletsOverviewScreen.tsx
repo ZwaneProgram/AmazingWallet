@@ -70,7 +70,7 @@ const WalletsOverviewScreen: React.FC<WalletsOverviewScreenProps> = ({ navigatio
           borderRadius={14}
           justifyContent="center"
           alignItems="center"
-          style={{ backgroundColor: s.color ?? COLORS.PURPLE[700] }}>
+          style={{ backgroundColor: s.color || COLORS.PURPLE[700] }}>
           {renderCategoryIcon(s.icon ?? "cash", s.name, 24, "#fff")}
         </Box>
         <Text fontFamily="SourceBold" fontSize={18} flex={1} numberOfLines={1}>

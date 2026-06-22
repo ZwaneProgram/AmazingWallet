@@ -59,7 +59,7 @@ const WalletPickerSheet: React.FC<Props> = ({
                     w.icon ?? "cash",
                     w.name,
                     22,
-                    w.color ?? COLORS.PURPLE[700]
+                    w.color || COLORS.PURPLE[700]
                   )}
                   <Text
                     fontFamily="SourceSansPro"

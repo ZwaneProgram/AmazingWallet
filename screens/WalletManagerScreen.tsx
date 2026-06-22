@@ -204,7 +204,7 @@ const WalletManagerScreen: React.FC<WalletManagerScreenProps> = ({ navigation })
           borderRadius={14}
           justifyContent="center"
           alignItems="center"
-          style={{ backgroundColor: wallet.color ?? COLORS.PURPLE[700] }}>
+          style={{ backgroundColor: wallet.color || COLORS.PURPLE[700] }}>
           {renderCategoryIcon(wallet.icon ?? "cash", wallet.name, 22, "#fff")}
         </Box>
         <VStack flex={1}>
