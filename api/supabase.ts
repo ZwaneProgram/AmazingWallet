@@ -36,13 +36,28 @@ const ExposeSecureStoreAdapter = {
   },
 };
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
-  auth: {
-    storage: ExposeSecureStoreAdapter as any,
-    autoRefreshToken: true,
-    persistSession: true,
-    detectSessionInUrl: false,
-  },
-});
+// Guard: if the env keys are missing (e.g. a build where they weren't baked
+// in), DON'T let createClient throw "supabaseUrl is required" — that aborts the
+// whole app at startup with a hard native crash. Fall back to harmless
+// placeholders so the app still mounts and can show an error instead of dying.
+if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+  console.error(
+    "[config] Missing SUPABASE_URL / SUPABASE_ANON_KEY. " +
+      "Backend calls will fail — check your .env (local) or EAS environment variables (build)."
+  );
+}
+
+export const supabase = createClient(
+  SUPABASE_URL || "https://missing-config.supabase.co",
+  SUPABASE_ANON_KEY || "missing-anon-key",
+  {
+    auth: {
+      storage: ExposeSecureStoreAdapter as any,
+      autoRefreshToken: true,
+      persistSession: true,
+      detectSessionInUrl: false,
+    },
+  }
+);
 
 export const supabaseConfig = Constants.manifest?.extra?.supabase;
