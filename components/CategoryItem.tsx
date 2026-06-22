@@ -51,7 +51,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
         <Box
           width="45px"
           height="45px"
-          backgroundColor={color}
+          backgroundColor={color || COLORS.PURPLE[700]}
           borderRadius={18}
           justifyContent="center"
           alignItems="center">

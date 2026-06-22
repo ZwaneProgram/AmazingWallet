@@ -315,7 +315,7 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
                                 borderRadius={10}
                                 justifyContent="center"
                                 alignItems="center"
-                                style={{ backgroundColor: c.color }}>
+                                style={{ backgroundColor: c.color || "#7e22ce" }}>
                                 {renderCategoryIcon(c.icon, c.name, 15, "#fff")}
                               </Box>
                               <Text

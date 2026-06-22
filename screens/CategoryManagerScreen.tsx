@@ -198,7 +198,7 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
           borderRadius={14}
           justifyContent="center"
           alignItems="center"
-          style={{ backgroundColor: category.color }}>
+          style={{ backgroundColor: category.color || "#7e22ce" }}>
           {renderCategoryIcon(category.icon, category.name, isSub ? 17 : 22, "#fff")}
         </Box>
         <Text fontFamily="SourceBold" fontSize={isSub ? 15 : 17} numberOfLines={1} flex={1}>
@@ -303,7 +303,7 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
                   borderRadius={16}
                   justifyContent="center"
                   alignItems="center"
-                  style={{ backgroundColor: color }}>
+                  style={{ backgroundColor: color || "#7e22ce" }}>
                   {renderCategoryIcon(icon, name, 24, "#fff")}
                 </Box>
                 <Text fontFamily="SourceBold" fontSize={20}>

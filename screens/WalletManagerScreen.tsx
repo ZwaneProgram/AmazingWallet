@@ -307,7 +307,7 @@ const WalletManagerScreen: React.FC<WalletManagerScreenProps> = ({ navigation })
                   borderRadius={16}
                   justifyContent="center"
                   alignItems="center"
-                  style={{ backgroundColor: color }}>
+                  style={{ backgroundColor: color || "#7e22ce" }}>
                   {renderCategoryIcon(icon, name, 24, "#fff")}
                 </Box>
                 <Text fontFamily="SourceBold" fontSize={20}>

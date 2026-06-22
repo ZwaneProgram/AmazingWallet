@@ -32,7 +32,7 @@ const TopSpendingCategory: React.FC<TopSpendingCategoryProps> = ({ item, expense
     <TouchableOpacity onPress={goToCategoryExpenses}>
       <VStack alignItems="center" space={3}>
         <Box
-          style={{ backgroundColor: color }}
+          style={{ backgroundColor: color || "#7e22ce" }}
           width="85px"
           height="85px"
           bg="red.400"

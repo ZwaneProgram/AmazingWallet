@@ -29,7 +29,7 @@ const MonthlyBudgetItem: React.FC<MonthlyBudgetItemProps> = ({ category, onChang
           borderRadius={22}
           width="60px"
           height="60px"
-          style={{ backgroundColor: color }}
+          style={{ backgroundColor: color || "#7e22ce" }}
           justifyContent="center"
           alignItems="center">
           {icon}

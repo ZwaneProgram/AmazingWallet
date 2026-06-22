@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
 import { HStack, Text, VStack, View, Pressable, Box, ScrollView, useTheme } from "native-base";
-import { SafeAreaView, FlatList, TouchableOpacity } from "react-native";
+import { SafeAreaView, TouchableOpacity } from "react-native";
 import { AntDesign, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { NavigationProp, ParamListBase, RouteProp } from "@react-navigation/native";
 import EZInput from "../components/shared/EZInput";
@@ -234,26 +234,22 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                   <Text alignSelf="flex-start" fontFamily="SourceSansPro" fontSize={20}>
                     Category
                   </Text>
-                  <FlatList
-                    style={{
-                      width: "100%",
-                      paddingTop: 5,
-                      paddingBottom: 5,
-                    }}
-                    numColumns={2}
-                    showsVerticalScrollIndicator={false}
-                    ItemSeparatorComponent={() => <View margin={4} />}
-                    data={parents}
-                    keyExtractor={(item: Category) => String(item.id)}
-                    renderItem={({ item }) => (
-                      <CategoryItem
-                        disabled={false}
-                        selectedCategory={selectedParentName}
-                        category={item}
-                        selectCategory={selectCategory}
-                      />
-                    )}
-                  />
+                  <Box
+                    flexDirection="row"
+                    flexWrap="wrap"
+                    width="100%"
+                    style={{ paddingTop: 5, paddingBottom: 5 }}>
+                    {(parents as Category[]).map((item: Category) => (
+                      <Box key={String(item.id)} width="50%" mb={4}>
+                        <CategoryItem
+                          disabled={false}
+                          selectedCategory={selectedParentName}
+                          category={item}
+                          selectCategory={selectCategory}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
 
                   {selectedParentSubs.length > 0 && (
                     <VStack alignSelf="flex-start" width="100%" space={2}>
@@ -303,7 +299,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                                     borderRadius={10}
                                     justifyContent="center"
                                     alignItems="center"
-                                    style={{ backgroundColor: sub.color }}>
+                                    style={{ backgroundColor: sub.color || COLORS.PURPLE[700] }}>
                                     {renderCategoryIcon(sub.icon, sub.name, 15, "#fff")}
                                   </Box>
                                   <Text
