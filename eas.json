@@ -10,11 +10,17 @@
     },
     "preview": {
       "distribution": "internal",
-      "environment": "production"
+      "environment": "production",
+      "android": {
+        "image": "latest"
+      }
     },
     "production": {
       "autoIncrement": true,
-      "environment": "production"
+      "environment": "production",
+      "android": {
+        "image": "latest"
+      }
     }
   },
   "submit": {
