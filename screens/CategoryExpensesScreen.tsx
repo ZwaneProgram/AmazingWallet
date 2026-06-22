@@ -72,7 +72,7 @@ const CategoryExpensesScreen: React.FC<Props> = ({ navigation, route }) => {
                       left="30px"
                       top="50%"
                       borderLeftWidth={1}
-                      borderColor={expense.color}
+                      borderColor={expense.color || COLORS.PURPLE[700]}
                       height="100%"
                       zIndex={1}
                     />
@@ -84,7 +84,7 @@ const CategoryExpensesScreen: React.FC<Props> = ({ navigation, route }) => {
                     borderWidth="3px"
                     borderRadius={9999}
                     zIndex={9}
-                    borderColor={expense.color}
+                    borderColor={expense.color || COLORS.PURPLE[700]}
                     position={"relative"}
                     backgroundColor={COLORS.MUTED[50]}
                   />
