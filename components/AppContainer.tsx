@@ -1,8 +1,66 @@
-import { extendTheme, NativeBaseProvider } from "native-base";
+import { extendTheme, NativeBaseProvider, theme as nbTheme } from "native-base";
 import React from "react";
 import { useSelector } from "react-redux";
 import Navigation from "../navigation/Navigation";
 import { RootState } from "../redux/store";
+
+// --- native-base ↔ modern React Native compatibility shim ---------------------
+// native-base 3.x hardcodes web-only CSS values (e.g. outlineWidth: "0" / "2px")
+// deep inside many component themes. On React Native 0.76+, outlineWidth and
+// outlineOffset became REAL native style props that must be numbers, so those
+// strings crash the app with: "String cannot be cast to java.lang.Double".
+// We can't edit node_modules, so we recursively coerce those props to numbers
+// across every native-base component theme, once, here.
+const NUMERIC_OUTLINE_PROPS = new Set(["outlineWidth", "outlineOffset"]);
+
+function sanitizeStyles(value: any): any {
+  if (Array.isArray(value)) {
+    return value.map(sanitizeStyles);
+  }
+  if (value && typeof value === "object") {
+    const out: any = {};
+    for (const key of Object.keys(value)) {
+      const v = value[key];
+      if (NUMERIC_OUTLINE_PROPS.has(key) && typeof v === "string") {
+        const n = parseFloat(v);
+        out[key] = Number.isFinite(n) ? n : 0;
+      } else {
+        out[key] = sanitizeStyles(v);
+      }
+    }
+    return out;
+  }
+  return value;
+}
+
+// Wrap a theme style source (object or (props) => object) so its output is sanitized.
+const wrapStyleSource = (src: any) =>
+  typeof src === "function" ? (...args: any[]) => sanitizeStyles(src(...args)) : sanitizeStyles(src);
+
+const sanitizedComponents = Object.keys(nbTheme.components || {}).reduce((acc: any, name) => {
+  const comp: any = (nbTheme.components as any)[name];
+  if (!comp || typeof comp !== "object") {
+    return acc;
+  }
+  const fixed: any = { ...comp };
+  if (comp.baseStyle) {
+    fixed.baseStyle = wrapStyleSource(comp.baseStyle);
+  }
+  if (comp.variants) {
+    fixed.variants = Object.keys(comp.variants).reduce((v: any, k) => {
+      v[k] = wrapStyleSource(comp.variants[k]);
+      return v;
+    }, {});
+  }
+  if (comp.sizes) {
+    fixed.sizes = Object.keys(comp.sizes).reduce((s: any, k) => {
+      s[k] = wrapStyleSource(comp.sizes[k]);
+      return s;
+    }, {});
+  }
+  acc[name] = fixed;
+  return acc;
+}, {});
 
 const AppContainer: React.FC<any> = () => {
   const user = useSelector((state: RootState) => state.user);
@@ -24,6 +82,7 @@ const AppContainer: React.FC<any> = () => {
         900: isDarkTheme ? "#fafafa" : "#171717",
       },
     },
+    components: sanitizedComponents,
     config: {
       initialColorMode: user.theme,
     },
