@@ -79,11 +79,11 @@ const GroupedTransactionList: React.FC<Props> = ({
     return result;
   }, [transactions, categories]);
 
-  const renderRow = (txn: Txn) => {
+  const renderRow = (txn: Txn, keyPrefix: string) => {
     const isIncome = txn.kind === "income";
     return (
       <Pressable
-        key={`${txn.kind}-${txn.id}`}
+        key={keyPrefix}
         onPress={() => onPressTransaction(txn)}
         _pressed={{ opacity: 0.5 }}>
         <HStack
@@ -139,11 +139,11 @@ const GroupedTransactionList: React.FC<Props> = ({
     );
   };
 
-  const renderGroup = (group: GroupItem) => {
+  const renderGroup = (group: GroupItem, keyPrefix: string) => {
     const { parent, children, total } = group;
     const isOpen = !!expanded[parent.id!];
     return (
-      <VStack key={`group-${parent.id}`} space={2}>
+      <VStack key={keyPrefix} space={2}>
         <Pressable onPress={() => toggle(parent.id!)} _pressed={{ opacity: 0.5 }}>
           <HStack
             alignItems="center"
@@ -190,9 +190,9 @@ const GroupedTransactionList: React.FC<Props> = ({
 
         {isOpen && (
           <VStack space={2} pl={6}>
-            {children.map((child) => (
+            {children.map((child, childIndex) => (
               <Pressable
-                key={`${child.kind}-${child.id}`}
+                key={`${keyPrefix}-child-${childIndex}`}
                 onPress={() => onPressTransaction(child)}
                 _pressed={{ opacity: 0.5 }}>
                 <HStack
@@ -243,8 +243,10 @@ const GroupedTransactionList: React.FC<Props> = ({
 
   return (
     <VStack space={3}>
-      {items.map((item) =>
-        item.type === "group" ? renderGroup(item) : renderRow(item.txn)
+      {items.map((item, index) =>
+        item.type === "group"
+          ? renderGroup(item, `group-${index}-${item.parent.id ?? "x"}`)
+          : renderRow(item.txn, `row-${index}-${item.txn.kind}-${item.txn.id ?? "x"}`)
       )}
     </VStack>
   );
