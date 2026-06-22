@@ -1,3 +1,7 @@
+// Must run before any native-base code loads — restores legacy RN event APIs
+// (AppState/BackHandler/Dimensions.removeEventListener) that native-base still uses.
+import './compat/legacyEventApis';
+
 import { registerRootComponent } from 'expo';
 
 import App from './App';
