@@ -1,12 +1,15 @@
-name: Build on push to main
+name: Build release
 
-# Every push to main triggers a cloud build of an installable Android APK
-# (preview profile). The "production" EAS environment supplies the Supabase
-# env vars; scripts/write-env.js recreates .env at build time.
+# Builds an installable Android APK (preview profile) ONLY when you push a
+# version tag like v1.0.1 — normal commits/pushes to main do NOT build.
+# You can also run it manually from the EAS dashboard or `eas workflow:run`.
+# The "production" EAS environment supplies the Supabase env vars;
+# scripts/write-env.js recreates .env at build time.
 on:
   push:
-    branches:
-      - main
+    tags:
+      - v*
+  workflow_dispatch:
 
 jobs:
   build_android:
