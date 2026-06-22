@@ -36,20 +36,29 @@ const ExposeSecureStoreAdapter = {
   },
 };
 
-// Guard: if the env keys are missing (e.g. a build where they weren't baked
-// in), DON'T let createClient throw "supabaseUrl is required" — that aborts the
-// whole app at startup with a hard native crash. Fall back to harmless
-// placeholders so the app still mounts and can show an error instead of dying.
-if (!SUPABASE_URL || !SUPABASE_ANON_KEY) {
+// Resolve the Supabase config. `@env` (react-native-dotenv) proved unreliable
+// on native/EAS builds (it failed to inline the values, crashing the app with
+// "supabaseUrl is required"). The robust source is Expo's `extra`, populated
+// from env vars in app.config.js at config time — works in Expo Go AND EAS.
+// We keep `@env` as a fallback for safety.
+const extra: any =
+  (Constants.expoConfig as any)?.extra ?? (Constants as any).manifest?.extra ?? {};
+
+const resolvedUrl: string | undefined = extra.supabaseUrl || SUPABASE_URL;
+const resolvedAnonKey: string | undefined = extra.supabaseAnonKey || SUPABASE_ANON_KEY;
+
+// Guard: never let createClient throw at startup (that aborts the whole app
+// with a hard native crash). Fall back to harmless placeholders + log instead.
+if (!resolvedUrl || !resolvedAnonKey) {
   console.error(
-    "[config] Missing SUPABASE_URL / SUPABASE_ANON_KEY. " +
-      "Backend calls will fail — check your .env (local) or EAS environment variables (build)."
+    "[config] Missing Supabase URL / anon key. Backend calls will fail — " +
+      "check your .env (local) or EAS environment variables (build)."
   );
 }
 
 export const supabase = createClient(
-  SUPABASE_URL || "https://missing-config.supabase.co",
-  SUPABASE_ANON_KEY || "missing-anon-key",
+  resolvedUrl || "https://missing-config.supabase.co",
+  resolvedAnonKey || "missing-anon-key",
   {
     auth: {
       storage: ExposeSecureStoreAdapter as any,
