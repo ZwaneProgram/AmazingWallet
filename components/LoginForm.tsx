@@ -14,6 +14,7 @@ import { loginSchema } from "../schemas/loginSchema";
 import EZInput from "./shared/EZInput";
 import COLORS from "../colors";
 import EZButton from "./shared/EZButton";
+import { useAccent } from "../hooks/useAccent";
 import { authInput } from "../commonStyles";
 
 interface LoginFormProps {
@@ -22,6 +23,7 @@ interface LoginFormProps {
 
 const LoginForm: React.FC<LoginFormProps> = ({ navigation }) => {
   const passwordRef = useRef(null);
+  const accent = useAccent();
 
   const [passwordVisilble, setPasswordVisible] = useState<boolean>(false);
   const [loading, setLoading] = useState<boolean>(false);
@@ -155,7 +157,7 @@ const LoginForm: React.FC<LoginFormProps> = ({ navigation }) => {
         borderRadius={8}
         height="44px"
         _text={{ fontFamily: "SourceSansPro", fontSize: 17 }}
-        _pressed={{ backgroundColor: COLORS.PURPLE[700], opacity: 0.7 }}>
+        _pressed={{ backgroundColor: accent[700], opacity: 0.7 }}>
         Sign in
       </EZButton>
     </VStack>

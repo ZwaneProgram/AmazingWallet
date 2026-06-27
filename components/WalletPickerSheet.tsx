@@ -7,6 +7,7 @@ import { Wallet } from "../interfaces/Wallet";
 import { renderCategoryIcon } from "../utils/categoryIcons";
 import { RootState } from "../redux/store";
 import COLORS from "../colors";
+import { useAccent } from "../hooks/useAccent";
 
 interface Props {
   isOpen: boolean;
@@ -43,11 +44,12 @@ const WalletPickerSheet: React.FC<Props> = ({
   symbol,
 }) => {
   const isDark = useSelector((state: RootState) => state.user.theme) === "dark";
+  const accent = useAccent();
   const textColor = isDark ? "#ffffff" : "#262626";
   const iconColor = isDark ? COLORS.MUTED[300] : COLORS.MUTED[500];
   const sheetBg = isDark ? "#1f2937" : "#ffffff";
-  const activeBg = isDark ? "#3b2e63" : COLORS.PURPLE[100];
-  const activeTint = isDark ? COLORS.PURPLE[300] : COLORS.PURPLE[700];
+  const activeBg = isDark ? "#3b2e63" : accent[100];
+  const activeTint = isDark ? accent[300] : accent[700];
 
   const fmtBalance = (v?: number) =>
     v == null ? "—" : `${symbol ?? ""} ${v.toFixed(2)}`;
@@ -79,7 +81,7 @@ const WalletPickerSheet: React.FC<Props> = ({
           backgroundColor: isActive ? activeBg : "transparent",
         }}>
         <HStack space={3} alignItems="center" flex={1}>
-          {renderCategoryIcon(w.icon ?? "cash", w.name, 22, w.color || COLORS.PURPLE[700])}
+          {renderCategoryIcon(w.icon ?? "cash", w.name, 22, w.color || accent[700])}
           <Text
             fontFamily="SourceSansPro"
             fontSize={17}

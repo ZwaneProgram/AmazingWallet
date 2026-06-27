@@ -28,10 +28,14 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AppStackParamList } from "../interfaces/Navigation";
 import { UserService } from "../api/services/UserService";
 import { StatusBar } from "expo-status-bar";
+import AccentColorPicker from "../components/AccentColorPicker";
+import { DEFAULT_ACCENT } from "../utils/accent";
+import { useAccent } from "../hooks/useAccent";
 
 const SettingsScreen: React.FC<any> = () => {
   const dispatch = useDispatch();
   const user: any = useSelector((state: RootState) => state.user);
+  const accent = useAccent();
   const {
     colors: { muted },
   } = useTheme();
@@ -42,6 +46,7 @@ const SettingsScreen: React.FC<any> = () => {
   const [theme, toggleTheme] = useState<boolean>(user.theme === "light" ? false : true);
 
   const [isCurrencyOpen, setIsCurrencyOpen] = useState<boolean>(false);
+  const [accentPickerOpen, setAccentPickerOpen] = useState<boolean>(false);
   const { toggleColorMode } = useColorMode();
 
   useLayoutEffect(() => {
@@ -214,7 +219,7 @@ const SettingsScreen: React.FC<any> = () => {
               <Text color="purple.700" fontFamily="SourceBold" fontSize={17}>
                 {user.symbol} {user.currency}
               </Text>
-              <Ionicons name="chevron-down" size={18} color={COLORS.PURPLE[700]} />
+              <Ionicons name="chevron-down" size={18} color={accent[700]} />
             </HStack>
           ),
           disabled: false,
@@ -245,6 +250,19 @@ const SettingsScreen: React.FC<any> = () => {
 
           rightElement: <Switch value={theme} onValueChange={() => switchTheme()} />,
           disabled: true,
+        },
+        {
+          icon: <Ionicons name="color-palette" size={18} color={COLORS.MUTED[50]} />,
+          color: user.accentColor || DEFAULT_ACCENT,
+          label: "Accent color",
+          onPress: () => setAccentPickerOpen(true),
+          rightElement: (
+            <HStack alignItems="center" space={2}>
+              <Circle size="22px" style={{ backgroundColor: user.accentColor || DEFAULT_ACCENT }} />
+              <FontAwesome name="angle-right" size={26} color={muted[900]} />
+            </HStack>
+          ),
+          disabled: false,
         },
         {
           icon: <MaterialCommunityIcons name="eraser" size={18} color={COLORS.MUTED[50]} />,
@@ -331,6 +349,8 @@ const SettingsScreen: React.FC<any> = () => {
           </View>
         ))}
       </ScrollView>
+
+      <AccentColorPicker isOpen={accentPickerOpen} onClose={() => setAccentPickerOpen(false)} />
 
       <Actionsheet isOpen={isCurrencyOpen} onClose={() => setIsCurrencyOpen(false)}>
         <Actionsheet.Content

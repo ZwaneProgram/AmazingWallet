@@ -15,7 +15,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { Budget } from "../interfaces/Budget";
 import EZButton from "../components/shared/EZButton";
-import COLORS from "../colors";
+import { useAccent } from "../hooks/useAccent";
 import { StatusBar } from "expo-status-bar";
 import {
   categoriesSelector,
@@ -31,6 +31,7 @@ interface EditBudgetScreenProps {
 
 const EditBudgetScreen: React.FC<EditBudgetScreenProps> = ({ navigation }) => {
   const user = useSelector((state: RootState) => state.user);
+  const accent = useAccent();
   const [buttonLoading, setButtonLoading] = useState<boolean>(false);
   const [budgets, setBudgets] = useState<any>([]);
   const dispatch = useDispatch();
@@ -182,7 +183,7 @@ const EditBudgetScreen: React.FC<EditBudgetScreenProps> = ({ navigation }) => {
             height="44px"
             _text={{ fontFamily: "SourceSansPro", fontSize: 17 }}
             _pressed={{
-              backgroundColor: COLORS.PURPLE[700],
+              backgroundColor: accent[700],
               opacity: 0.7,
             }}>
             SAVE

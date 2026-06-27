@@ -9,6 +9,7 @@ import COLORS from "../colors";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { categoriesSelector } from "../redux/expensesReducers";
+import { useAccent } from "../hooks/useAccent";
 
 interface MonthlyBudgetCategoryProps {
   budget: Budget;
@@ -17,8 +18,9 @@ interface MonthlyBudgetCategoryProps {
 
 const MonthlyBudgetCategory: React.FC<MonthlyBudgetCategoryProps> = ({ budget, monthlyTotal }) => {
   const { budget: amount, category, color } = budget;
+  const accent = useAccent();
   // Guard against empty/undefined colors from the DB — "" is not a valid color.
-  const safeColor = color || COLORS.PURPLE[700];
+  const safeColor = color || accent[700];
   const user: any = useSelector((state: RootState) => state.user);
   const categories = useSelector(categoriesSelector);
   const iconKey = categories.find((c: Category) => c.name === category)?.icon;

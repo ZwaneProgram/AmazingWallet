@@ -13,9 +13,11 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import EZButton from "./shared/EZButton";
 import { AppStackParamList } from "../interfaces/Navigation";
 import { authInput } from "../commonStyles";
+import { useAccent } from "../hooks/useAccent";
 
 const RegisterForm: React.FC<any> = () => {
   const [loading, setLoading] = useState<boolean>(false);
+  const accent = useAccent();
 
   const lastNameRef = useRef(null);
   const emailRef = useRef(null);
@@ -174,7 +176,7 @@ const RegisterForm: React.FC<any> = () => {
         _text={{ fontFamily: "SourceSansPro", fontSize: 17 }}
         onPress={submit}
         isLoading={loading}
-        _pressed={{ backgroundColor: COLORS.PURPLE[700], opacity: 0.7 }}>
+        _pressed={{ backgroundColor: accent[700], opacity: 0.7 }}>
         Register
       </EZButton>
     </VStack>

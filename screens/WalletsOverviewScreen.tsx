@@ -20,6 +20,7 @@ import COLORS from "../colors";
 import { WalletService } from "../api/services/WalletService";
 import { WalletSummary } from "../interfaces/Wallet";
 import { renderCategoryIcon } from "../utils/categoryIcons";
+import { useAccent } from "../hooks/useAccent";
 
 interface WalletsOverviewScreenProps {
   navigation: NavigationProp<ParamListBase>;
@@ -27,6 +28,7 @@ interface WalletsOverviewScreenProps {
 
 const WalletsOverviewScreen: React.FC<WalletsOverviewScreenProps> = ({ navigation }) => {
   const user: any = useSelector((state: RootState) => state.user);
+  const accent = useAccent();
   const [summaries, setSummaries] = useState<WalletSummary[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -70,7 +72,7 @@ const WalletsOverviewScreen: React.FC<WalletsOverviewScreenProps> = ({ navigatio
           borderRadius={14}
           justifyContent="center"
           alignItems="center"
-          style={{ backgroundColor: s.color || COLORS.PURPLE[700] }}>
+          style={{ backgroundColor: s.color || accent[700] }}>
           {renderCategoryIcon(s.icon ?? "cash", s.name, 24, "#fff")}
         </Box>
         <Text fontFamily="SourceBold" fontSize={18} flex={1} numberOfLines={1}>

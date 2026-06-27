@@ -7,7 +7,7 @@ import { renderCategoryIcon } from "../utils/categoryIcons";
 import { RootState } from "../redux/store";
 import EZInput from "./shared/EZInput";
 import EZButton from "./shared/EZButton";
-import COLORS from "../colors";
+import { useAccent } from "../hooks/useAccent";
 import { authInput } from "../commonStyles";
 
 interface Props {
@@ -33,6 +33,7 @@ const TransferModal: React.FC<Props> = ({
   onSubmit,
 }) => {
   const isDark = useSelector((state: RootState) => state.user.theme) === "dark";
+  const accentRamp = useAccent();
   const [fromId, setFromId] = useState<number | undefined>(undefined);
   const [toId, setToId] = useState<number | undefined>(undefined);
   const [amount, setAmount] = useState<string>("");
@@ -53,8 +54,8 @@ const TransferModal: React.FC<Props> = ({
     }
   }, [isOpen]);
 
-  const accent = isDark ? COLORS.PURPLE[300] : COLORS.PURPLE[700];
-  const chipActiveBg = isDark ? "rgba(168,85,247,0.18)" : COLORS.PURPLE[100];
+  const accent = isDark ? accentRamp[300] : accentRamp[700];
+  const chipActiveBg = isDark ? "rgba(168,85,247,0.18)" : accentRamp[100];
 
   // A horizontal row of selectable wallet chips. The chip matching `disabledId`
   // (the wallet picked on the other side) is dimmed so From and To can't match.
@@ -81,9 +82,9 @@ const TransferModal: React.FC<Props> = ({
                 py={2}
                 borderRadius={12}
                 borderWidth={1.5}
-                borderColor={active ? COLORS.PURPLE[400] : "muted.200"}
+                borderColor={active ? accentRamp[400] : "muted.200"}
                 bg={active ? chipActiveBg : "muted.50"}>
-                {renderCategoryIcon(w.icon ?? "cash", w.name, 18, w.color || COLORS.PURPLE[700])}
+                {renderCategoryIcon(w.icon ?? "cash", w.name, 18, w.color || accentRamp[700])}
                 <Text fontFamily="SourceBold" fontSize={14} color={active ? accent : undefined}>
                   {w.name}
                 </Text>
@@ -184,11 +185,11 @@ const TransferModal: React.FC<Props> = ({
               variant="solid"
               isLoading={saving}
               onPress={submit}
-              bg={COLORS.PURPLE[700]}
+              bg={accentRamp[700]}
               borderRadius={8}
               height="44px"
               _text={{ fontFamily: "SourceSansPro", fontSize: 16 }}
-              _pressed={{ backgroundColor: COLORS.PURPLE[700], opacity: 0.7 }}>
+              _pressed={{ backgroundColor: accentRamp[700], opacity: 0.7 }}>
               Transfer
             </EZButton>
           </VStack>

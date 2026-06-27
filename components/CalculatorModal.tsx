@@ -3,6 +3,7 @@ import { Modal, VStack, HStack, Pressable, Text, View } from "native-base";
 import { Feather } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
 import COLORS from "../colors";
+import { DEFAULT_ACCENT } from "../utils/accent";
 import { evaluateExpression, formatResult } from "../utils/calculator";
 import { RootState } from "../redux/store";
 
@@ -23,7 +24,7 @@ const CalculatorModal: React.FC<CalculatorModalProps> = ({
   isOpen,
   onClose,
   initialValue,
-  accentColor = COLORS.PURPLE[700],
+  accentColor = DEFAULT_ACCENT,
   onResult,
 }) => {
   const isDark = useSelector((state: RootState) => state.user.theme) === "dark";

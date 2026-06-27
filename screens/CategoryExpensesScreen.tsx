@@ -12,6 +12,7 @@ import COLORS from "../colors";
 import { AppStackParamList } from "../interfaces/Navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
+import { useAccent } from "../hooks/useAccent";
 
 type Props = {
   navigation: NavigationProp<ParamListBase>;
@@ -22,6 +23,7 @@ const CategoryExpensesScreen: React.FC<Props> = ({ navigation, route }) => {
   const { params } = route;
   const { expenses, name } = params;
   const { theme } = useSelector((state: RootState) => state.user);
+  const accent = useAccent();
   const {
     colors: { muted },
   } = useTheme();
@@ -72,7 +74,7 @@ const CategoryExpensesScreen: React.FC<Props> = ({ navigation, route }) => {
                       left="30px"
                       top="50%"
                       borderLeftWidth={1}
-                      borderColor={expense.color || COLORS.PURPLE[700]}
+                      borderColor={expense.color || accent[700]}
                       height="100%"
                       zIndex={1}
                     />
@@ -84,7 +86,7 @@ const CategoryExpensesScreen: React.FC<Props> = ({ navigation, route }) => {
                     borderWidth="3px"
                     borderRadius={9999}
                     zIndex={9}
-                    borderColor={expense.color || COLORS.PURPLE[700]}
+                    borderColor={expense.color || accent[700]}
                     position={"relative"}
                     backgroundColor={COLORS.MUTED[50]}
                   />

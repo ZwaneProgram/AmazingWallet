@@ -6,6 +6,7 @@ import { renderCategoryIcon } from "../utils/categoryIcons";
 import COLORS from "../colors";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
+import { useAccent } from "../hooks/useAccent";
 
 interface CategoryItemProps {
   category: Category;
@@ -22,6 +23,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
 }) => {
   const user: any = useSelector((state: RootState) => state.user);
   const isDark = user.theme === "dark";
+  const accent = useAccent();
   const { width } = useWindowDimensions();
 
   const { name, color, icon } = category;
@@ -62,7 +64,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
         <Box
           width="40px"
           height="40px"
-          backgroundColor={color || COLORS.PURPLE[700]}
+          backgroundColor={color || accent[700]}
           borderRadius={14}
           justifyContent="center"
           alignItems="center">

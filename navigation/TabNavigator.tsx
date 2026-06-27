@@ -12,6 +12,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import EZHeaderBackground from "../components/shared/EZHeaderBackground";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
+import { useAccent } from "../hooks/useAccent";
 
 const Tab = createBottomTabNavigator();
 
@@ -26,7 +27,8 @@ const TabNavigator: React.FC<any> = () => {
   // (gesture bar / nav buttons). Keeps the bar slim on phones without an inset.
   const tabBarHeight = TAB_BAR_HEIGHT + insets.bottom;
   const isDark = user.theme === "dark";
-  const activeColor = isDark ? COLORS.PURPLE[400] : COLORS.PURPLE[700];
+  const accent = useAccent();
+  const activeColor = isDark ? accent[400] : accent[700];
   const inactiveColor = isDark ? COLORS.MUTED[300] : COLORS.MUTED[500];
 
   const animateTabOffset = (index: number) => {
@@ -147,7 +149,7 @@ const TabNavigator: React.FC<any> = () => {
         style={{
           width: tabWidth,
           height: 2,
-          backgroundColor: COLORS.PURPLE[700],
+          backgroundColor: accent[700],
           position: "absolute",
           borderRadius: 50,
           bottom: tabBarHeight - 2,

@@ -12,10 +12,12 @@ import { AppStackParamList } from "../interfaces/Navigation";
 import { useFormik } from "formik";
 import { resetPasswordSchema } from "../schemas/resetPasswordScheama";
 import { UserService } from "../api/services/UserService";
+import { useAccent } from "../hooks/useAccent";
 
 const ResetPasswordForm: React.FC<any> = () => {
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const [loading, setLoading] = useState<boolean>(false);
+  const accent = useAccent();
   const {
     colors: { muted },
   } = useTheme();
@@ -125,7 +127,7 @@ const ResetPasswordForm: React.FC<any> = () => {
         borderRadius={8}
         height="44px"
         _text={{ fontFamily: "SourceSansPro", fontSize: 17 }}
-        _pressed={{ backgroundColor: COLORS.PURPLE[700], opacity: 0.7 }}>
+        _pressed={{ backgroundColor: accent[700], opacity: 0.7 }}>
         Reset password
       </EZButton>
     </VStack>

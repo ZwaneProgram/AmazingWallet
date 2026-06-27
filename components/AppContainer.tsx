@@ -3,6 +3,7 @@ import React from "react";
 import { useSelector } from "react-redux";
 import Navigation from "../navigation/Navigation";
 import { RootState } from "../redux/store";
+import { buildAccentRamp, DEFAULT_ACCENT } from "../utils/accent";
 
 // --- native-base ↔ modern React Native compatibility shim ---------------------
 // native-base 3.x hardcodes web-only CSS values (e.g. outlineWidth: "0" / "2px")
@@ -67,8 +68,15 @@ const AppContainer: React.FC<any> = () => {
 
   const isDarkTheme = user.theme === "dark";
 
+  // The user's accent replaces the built-in purple palette, so every `purple.*`
+  // token across the app recolors live. Falls back to the original purple for
+  // accounts persisted before this setting existed.
+  const accentRamp = buildAccentRamp(user.accentColor || DEFAULT_ACCENT);
+
   const theme = extendTheme({
     colors: {
+      purple: accentRamp,
+      primary: accentRamp,
       muted: {
         // 50 stays a surface color (dark card bg in dark mode); header text uses an
         // explicit white instead. The text shades (400–900) flip to light in dark mode

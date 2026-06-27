@@ -52,6 +52,7 @@ import TransferModal from "../components/TransferModal";
 import GroupedTransactionList from "../components/GroupedTransactionList";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WalletService } from "../api/services/WalletService";
+import { useAccent } from "../hooks/useAccent";
 
 interface HomeScreenProps {
   navigation: NavigationProp<ParamListBase>;
@@ -77,6 +78,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const wallets = useSelector(walletsSelector);
 
   const user: any = useSelector((state: RootState) => state.user);
+  const accent = useAccent();
 
   const recentTransactions = useMemo(() => {
     const merged: any[] = [
@@ -95,7 +97,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <LinearGradient
             colors={
               user.theme === "light"
-                ? [COLORS.PURPLE[900], COLORS.PURPLE[600]]
+                ? [accent[900], accent[600]]
                 : ["#111827", "#1f2937"]
             }
             style={{
@@ -172,7 +174,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </View>
       ),
     });
-  }, [navigation, todayTotal, loading, user.month, user.year, user.activeWalletId, wallets, insets.top, user.theme]);
+  }, [navigation, todayTotal, loading, user.month, user.year, user.activeWalletId, wallets, insets.top, user.theme, accent]);
 
   useEffect(() => {
     if (!expenses.length) {
@@ -463,12 +465,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                     <HStack alignItems="center" space={1} flexShrink={0}>
                       <Text
                         fontFamily="SourceBold"
-                        color={COLORS.PURPLE[700]}
+                        color={accent[700]}
                         fontSize={17}
                         numberOfLines={1}>
                         View all
                       </Text>
-                      <Feather name="chevron-right" size={20} color={COLORS.PURPLE[700]} />
+                      <Feather name="chevron-right" size={20} color={accent[700]} />
                     </HStack>
                   </Pressable>
                 )}
@@ -505,7 +507,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                     <EZButton
                       _text={{
                         fontFamily: "SourceBold",
-                        color: COLORS.PURPLE[700],
+                        color: accent[700],
                         fontSize: 17,
                       }}
                       variant="unstyled"
@@ -515,7 +517,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                         <MaterialCommunityIcons
                           name="lead-pencil"
                           size={22}
-                          color={COLORS.PURPLE[700]}
+                          color={accent[700]}
                         />
                       }>
                       Edit
@@ -524,12 +526,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                     <EZButton
                       _text={{
                         fontFamily: "SourceBold",
-                        color: COLORS.PURPLE[700],
+                        color: accent[700],
                         fontSize: 17,
                       }}
                       variant="unstyled"
                       onPress={openEditBudgetsModal}
-                      leftIcon={<Feather name="plus" size={22} color={COLORS.PURPLE[700]} />}>
+                      leftIcon={<Feather name="plus" size={22} color={accent[700]} />}>
                       Add
                     </EZButton>
                   )}

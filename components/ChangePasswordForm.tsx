@@ -14,11 +14,13 @@ import { changePasswordSchema } from "../schemas/changePasswordSchemta";
 import { UserService } from "../api/services/UserService";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
+import { useAccent } from "../hooks/useAccent";
 
 const ChangePasswordForm: React.FC<any> = () => {
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const [loading, setLoading] = useState<boolean>(false);
   const user: any = useSelector((state: RootState) => state.user);
+  const accent = useAccent();
   const {
     colors: { muted },
   } = useTheme();
@@ -112,7 +114,7 @@ const ChangePasswordForm: React.FC<any> = () => {
         borderRadius={8}
         height="44px"
         _text={{ fontFamily: "SourceSansPro", fontSize: 17 }}
-        _pressed={{ backgroundColor: COLORS.PURPLE[700], opacity: 0.7 }}>
+        _pressed={{ backgroundColor: accent[700], opacity: 0.7 }}>
         Change password
       </EZButton>
     </VStack>

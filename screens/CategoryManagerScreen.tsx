@@ -25,6 +25,7 @@ import { renderCategoryIcon, ICON_OPTIONS, COLOR_PALETTE } from "../utils/catego
 import EZInput from "../components/shared/EZInput";
 import EZButton from "../components/shared/EZButton";
 import { authInput } from "../commonStyles";
+import { useAccent } from "../hooks/useAccent";
 
 interface CategoryManagerScreenProps {
   navigation: NavigationProp<ParamListBase>;
@@ -36,6 +37,7 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
   const dispatch = useDispatch();
   const user: any = useSelector((state: RootState) => state.user);
   const categories = useSelector(categoriesSelector);
+  const accent = useAccent();
 
   const [loading, setLoading] = useState<boolean>(true);
 
@@ -208,7 +210,7 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
       <HStack space={1} alignItems="center">
         {!isSub && (
           <TouchableOpacity onPress={() => openAddSub(category)} style={{ padding: 6 }}>
-            <Feather name="plus" size={20} color={COLORS.PURPLE[700]} />
+            <Feather name="plus" size={20} color={accent[700]} />
           </TouchableOpacity>
         )}
         <TouchableOpacity onPress={() => openEdit(category)} style={{ padding: 6 }}>
@@ -266,8 +268,8 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
               borderRadius={10}
               height="46px"
               px={6}
-              _text={{ fontFamily: "SourceBold", fontSize: 15, color: COLORS.PURPLE[700] }}
-              leftIcon={<MaterialCommunityIcons name="auto-fix" size={18} color={COLORS.PURPLE[700]} />}>
+              _text={{ fontFamily: "SourceBold", fontSize: 15, color: accent[700] }}
+              leftIcon={<MaterialCommunityIcons name="auto-fix" size={18} color={accent[700]} />}>
               Add default categories
             </EZButton>
           </View>

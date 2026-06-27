@@ -27,6 +27,7 @@ import { renderCategoryIcon, ICON_OPTIONS, COLOR_PALETTE } from "../utils/catego
 import EZInput from "../components/shared/EZInput";
 import EZButton from "../components/shared/EZButton";
 import { authInput } from "../commonStyles";
+import { useAccent } from "../hooks/useAccent";
 
 interface WalletManagerScreenProps {
   navigation: NavigationProp<ParamListBase>;
@@ -37,6 +38,7 @@ type Mode = "add" | "edit";
 const WalletManagerScreen: React.FC<WalletManagerScreenProps> = ({ navigation }) => {
   const dispatch = useDispatch();
   const user: any = useSelector((state: RootState) => state.user);
+  const accent = useAccent();
 
   const [loading, setLoading] = useState<boolean>(true);
   const [wallets, setWallets] = useState<Wallet[]>([]);
@@ -204,7 +206,7 @@ const WalletManagerScreen: React.FC<WalletManagerScreenProps> = ({ navigation })
           borderRadius={14}
           justifyContent="center"
           alignItems="center"
-          style={{ backgroundColor: wallet.color || COLORS.PURPLE[700] }}>
+          style={{ backgroundColor: wallet.color || accent[700] }}>
           {renderCategoryIcon(wallet.icon ?? "cash", wallet.name, 22, "#fff")}
         </Box>
         <VStack flex={1}>
@@ -228,7 +230,7 @@ const WalletManagerScreen: React.FC<WalletManagerScreenProps> = ({ navigation })
       <HStack space={1} alignItems="center">
         {!wallet.isDefault && (
           <TouchableOpacity onPress={() => handleSetDefault(wallet)} style={{ padding: 6 }}>
-            <MaterialCommunityIcons name="star-outline" size={20} color={COLORS.PURPLE[700]} />
+            <MaterialCommunityIcons name="star-outline" size={20} color={accent[700]} />
           </TouchableOpacity>
         )}
         <TouchableOpacity onPress={() => openEdit(wallet)} style={{ padding: 6 }}>

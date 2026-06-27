@@ -20,6 +20,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { StatusBar } from "expo-status-bar";
 import { addExpenseAction, addIncomeAction, categoriesSelector, walletsSelector } from "../redux/expensesReducers";
+import { useAccent } from "../hooks/useAccent";
 import moment from "moment";
 import { authInput } from "../commonStyles";
 
@@ -41,6 +42,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
   const isDark = user.theme === "dark";
   const categories = useSelector(categoriesSelector);
   const wallets = useSelector(walletsSelector);
+  const accent = useAccent();
   const activeWalletName = wallets.find((w: any) => w.id === user.activeWalletId)?.name ?? "";
   const [loading, setLoading] = useState<boolean>(false);
   const [calcOpen, setCalcOpen] = useState<boolean>(false);
@@ -145,7 +147,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
     formik.setTouched({});
   };
 
-  const accentColor = isIncome ? COLORS.EMERALD[500] : COLORS.PURPLE[700];
+  const accentColor = isIncome ? COLORS.EMERALD[500] : accent[700];
 
   // 2-level category picker: grid shows parents; a sub row appears for the selected parent.
   const parents = (categories as Category[]).filter((c: Category) => !c.parentId);
@@ -264,7 +266,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                       p={3}
                       style={{
                         borderLeftWidth: 4,
-                        borderLeftColor: selectedParent!.color || COLORS.PURPLE[700],
+                        borderLeftColor: selectedParent!.color || accent[700],
                       }}>
                       {/* Header makes it read as a step *inside* the chosen category */}
                       <HStack alignItems="center" space={2} mb={3}>
@@ -274,7 +276,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                           borderRadius={10}
                           justifyContent="center"
                           alignItems="center"
-                          style={{ backgroundColor: selectedParent!.color || COLORS.PURPLE[700] }}>
+                          style={{ backgroundColor: selectedParent!.color || accent[700] }}>
                           {renderCategoryIcon(selectedParent!.icon, selectedParent!.name, 17, "#fff")}
                         </Box>
                         <VStack>
@@ -360,7 +362,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                                   borderRadius={10}
                                   justifyContent="center"
                                   alignItems="center"
-                                  style={{ backgroundColor: sub.color || COLORS.PURPLE[700] }}>
+                                  style={{ backgroundColor: sub.color || accent[700] }}>
                                   {renderCategoryIcon(sub.icon, sub.name, 15, "#fff")}
                                 </Box>
                                 <Text
