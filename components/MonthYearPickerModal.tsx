@@ -3,9 +3,9 @@ import { Modal, VStack, HStack, Box, Pressable, Text } from "native-base";
 import { TouchableOpacity } from "react-native";
 import { AntDesign } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
-import COLORS from "../colors";
 import { MONTHS } from "../constants/Months";
 import { RootState } from "../redux/store";
+import { useAccent } from "../hooks/useAccent";
 
 interface Props {
   isOpen: boolean;
@@ -13,10 +13,23 @@ interface Props {
   month: string;
   year: number;
   onSelect: (month: string, year: number) => void;
+  // When provided, an "All <year>" option is shown above the month grid (used by
+  // History to view a whole year at once). Home/Graph omit it and behave as before.
+  onSelectAll?: (year: number) => void;
+  allActive?: boolean;
 }
 
-const MonthYearPickerModal: React.FC<Props> = ({ isOpen, onClose, month, year, onSelect }) => {
+const MonthYearPickerModal: React.FC<Props> = ({
+  isOpen,
+  onClose,
+  month,
+  year,
+  onSelect,
+  onSelectAll,
+  allActive,
+}) => {
   const isDark = useSelector((state: RootState) => state.user.theme) === "dark";
+  const accent = useAccent();
   const [viewYear, setViewYear] = useState<number>(year);
 
   useEffect(() => {
@@ -47,7 +60,7 @@ const MonthYearPickerModal: React.FC<Props> = ({ isOpen, onClose, month, year, o
               <TouchableOpacity
                 onPress={() => setViewYear((y) => y - 1)}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                <AntDesign name="left" size={22} color={COLORS.PURPLE[700]} />
+                <AntDesign name="left" size={22} color={accent[700]} />
               </TouchableOpacity>
               <Text fontFamily="SourceBold" fontSize={22}>
                 {viewYear}
@@ -55,13 +68,35 @@ const MonthYearPickerModal: React.FC<Props> = ({ isOpen, onClose, month, year, o
               <TouchableOpacity
                 onPress={() => setViewYear((y) => y + 1)}
                 hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                <AntDesign name="right" size={22} color={COLORS.PURPLE[700]} />
+                <AntDesign name="right" size={22} color={accent[700]} />
               </TouchableOpacity>
             </HStack>
 
+            {onSelectAll && (
+              <Pressable
+                onPress={() => {
+                  onSelectAll(viewYear);
+                  onClose();
+                }}>
+                <Box
+                  height="44px"
+                  borderRadius={12}
+                  justifyContent="center"
+                  alignItems="center"
+                  bg={allActive && viewYear === year ? "purple.700" : isDark ? "#374151" : "muted.100"}>
+                  <Text
+                    fontFamily="SourceBold"
+                    fontSize={14}
+                    color={allActive && viewYear === year ? "white" : "muted.700"}>
+                    All {viewYear}
+                  </Text>
+                </Box>
+              </Pressable>
+            )}
+
             <Box flexDirection="row" flexWrap="wrap" justifyContent="space-between">
               {MONTHS.map((m) => {
-                const active = m === month && viewYear === year;
+                const active = !allActive && m === month && viewYear === year;
                 return (
                   <Pressable key={m} width="23%" mb={3} onPress={() => pick(m)}>
                     <Box

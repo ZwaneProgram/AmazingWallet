@@ -12,15 +12,18 @@ import {
   Divider,
   Actionsheet,
 } from "native-base";
-import { Alert, Platform, TouchableOpacity } from "react-native";
-import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
+import { Alert, Platform, TextInput, TouchableOpacity } from "react-native";
+import { AntDesign, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { NavigationProp, ParamListBase } from "@react-navigation/native";
+import moment from "moment";
 import EZHeaderTitle from "../components/shared/EzHeaderTitle";
+import MonthYearPickerModal from "../components/MonthYearPickerModal";
 import { useDispatch, useSelector } from "react-redux";
 import { StatusBar } from "expo-status-bar";
 import { RootState } from "../redux/store";
 import COLORS from "../colors";
 import { renderCategoryIcon } from "../utils/categoryIcons";
+import { useAccent } from "../hooks/useAccent";
 import { ExpenseService } from "../api/services/ExpenseService";
 import { IncomeService } from "../api/services/IncomeService";
 import { CategoryService } from "../api/services/CategoryService";
@@ -71,12 +74,18 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
   const user: any = useSelector((state: RootState) => state.user);
   const categories = useSelector(categoriesSelector);
   const wallets = useSelector(walletsSelector);
+  const accent = useAccent();
 
   const [loading, setLoading] = useState<boolean>(true);
   const [transactions, setTransactions] = useState<Txn[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
   const [walletFilter, setWalletFilter] = useState<number | "all">("all");
   const [walletSheetOpen, setWalletSheetOpen] = useState<boolean>(false);
+  const [search, setSearch] = useState<string>("");
+  const [histMode, setHistMode] = useState<"month" | "all">("month");
+  const [histMonth, setHistMonth] = useState<string>(moment().format("MMMM"));
+  const [histYear, setHistYear] = useState<number>(moment().year());
+  const [monthPickerOpen, setMonthPickerOpen] = useState<boolean>(false);
 
   // edit modal state
   const [editing, setEditing] = useState<Txn | null>(null);
@@ -291,7 +300,34 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
     }
   };
 
+  const monthNumber = moment(histMonth, "MMMM").month();
+  const periodStart =
+    histMode === "all"
+      ? moment().year(histYear).startOf("year").format("YYYY-MM-DD")
+      : moment().year(histYear).month(monthNumber).startOf("month").format("YYYY-MM-DD");
+  const periodEnd =
+    histMode === "all"
+      ? moment().year(histYear).endOf("year").format("YYYY-MM-DD")
+      : moment().year(histYear).month(monthNumber).endOf("month").format("YYYY-MM-DD");
+  const periodLabel = histMode === "all" ? `All ${histYear}` : `${histMonth} ${histYear}`;
+  const query = search.trim().toLowerCase();
+
+  // Arrows page months in month-mode, and years in all-mode.
+  const shiftPeriod = (delta: number) => {
+    if (histMode === "all") {
+      setHistYear((y) => y + delta);
+      return;
+    }
+    const next = moment().year(histYear).month(monthNumber).add(delta, "month");
+    setHistMonth(next.format("MMMM"));
+    setHistYear(next.year());
+  };
+
   const visible = transactions.filter((t) => {
+    // Only the selected period (a single month, or a whole year when "All").
+    if (t.payDate < periodStart || t.payDate > periodEnd) return false;
+    // Free-text search over the note/description.
+    if (query && !(t.description ?? "").toLowerCase().includes(query)) return false;
     // Expenses/Income filter hides transfers (they're neither).
     if (filter !== "all" && t.kind !== filter) return false;
     if (walletFilter === "all") return true;
@@ -310,6 +346,74 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
     <View flex={1}>
       <StatusBar style="light" />
       <View flex={1} pt={6} px={6}>
+        {/* Period picker — page through months (or years when viewing "All") */}
+        <HStack alignItems="center" justifyContent="space-between" mb={3}>
+          <TouchableOpacity
+            onPress={() => shiftPeriod(-1)}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <AntDesign name="left" size={22} color={accent[700]} />
+          </TouchableOpacity>
+          <Pressable onPress={() => setMonthPickerOpen(true)} _pressed={{ opacity: 0.6 }}>
+            <HStack
+              space={2}
+              alignItems="center"
+              px={4}
+              py={2}
+              borderRadius={20}
+              bg={isDark ? "muted.50" : "muted.100"}>
+              <Feather
+                name="calendar"
+                size={14}
+                color={isDark ? COLORS.MUTED[300] : COLORS.MUTED[500]}
+              />
+              <Text fontFamily="SourceBold" fontSize={16}>
+                {periodLabel}
+              </Text>
+              <AntDesign
+                name="caret-down"
+                size={10}
+                color={isDark ? COLORS.MUTED[300] : COLORS.MUTED[500]}
+              />
+            </HStack>
+          </Pressable>
+          <TouchableOpacity
+            onPress={() => shiftPeriod(1)}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+            <AntDesign name="right" size={22} color={accent[700]} />
+          </TouchableOpacity>
+        </HStack>
+
+        {/* Search notes */}
+        <HStack
+          alignItems="center"
+          space={2}
+          bg={isDark ? "muted.50" : "muted.100"}
+          borderRadius={12}
+          px={4}
+          py={Platform.OS === "ios" ? 3 : 1.5}
+          mb={3}>
+          <Feather name="search" size={18} color={isDark ? COLORS.MUTED[300] : COLORS.MUTED[500]} />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder="Search notes"
+            placeholderTextColor={isDark ? COLORS.MUTED[400] : COLORS.MUTED[400]}
+            style={{
+              flex: 1,
+              fontFamily: "SourceSansPro",
+              fontSize: 16,
+              color: isDark ? "#ffffff" : "#262626",
+            }}
+          />
+          {search.length > 0 && (
+            <TouchableOpacity
+              onPress={() => setSearch("")}
+              hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
+              <Feather name="x" size={18} color={isDark ? COLORS.MUTED[300] : COLORS.MUTED[500]} />
+            </TouchableOpacity>
+          )}
+        </HStack>
+
         {/* Wallet filter */}
         <Pressable onPress={() => setWalletSheetOpen(true)} mb={3}>
           <HStack
@@ -325,7 +429,7 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
                   selectedWallet.icon ?? "cash",
                   selectedWallet.name,
                   20,
-                  selectedWallet.color || COLORS.PURPLE[700]
+                  selectedWallet.color || accent[700]
                 )
               ) : (
                 <MaterialCommunityIcons
@@ -367,9 +471,11 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
             <Spinner color="purple.700" size="lg" />
           </View>
         ) : visible.length === 0 ? (
-          <View flex={1} justifyContent="center" alignItems="center">
-            <Text fontSize={18} fontFamily="SourceSansPro" color="muted.400">
-              No transactions yet
+          <View flex={1} justifyContent="center" alignItems="center" px={6}>
+            <Text fontSize={18} fontFamily="SourceSansPro" color="muted.400" textAlign="center">
+              {query
+                ? `No notes matching "${search.trim()}"`
+                : `No transactions in ${periodLabel}`}
             </Text>
           </View>
         ) : (
@@ -384,6 +490,24 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
           </ScrollView>
         )}
       </View>
+
+      {/* Period picker: each month, plus an "All <year>" option */}
+      <MonthYearPickerModal
+        isOpen={monthPickerOpen}
+        onClose={() => setMonthPickerOpen(false)}
+        month={histMonth}
+        year={histYear}
+        allActive={histMode === "all"}
+        onSelect={(month, year) => {
+          setHistMode("month");
+          setHistMonth(month);
+          setHistYear(year);
+        }}
+        onSelectAll={(year) => {
+          setHistMode("all");
+          setHistYear(year);
+        }}
+      />
 
       {/* Wallet filter sheet */}
       <Actionsheet isOpen={walletSheetOpen} onClose={() => setWalletSheetOpen(false)}>
@@ -400,8 +524,8 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
             ]
           ).map((opt) => {
             const active = walletFilter === opt.key;
-            const activeBg = isDark ? "#3b2e63" : COLORS.PURPLE[100];
-            const activeTint = isDark ? COLORS.PURPLE[300] : COLORS.PURPLE[700];
+            const activeBg = isDark ? "#3b2e63" : accent[100];
+            const activeTint = isDark ? accent[300] : accent[700];
             return (
               <TouchableOpacity
                 key={String(opt.key)}
@@ -428,7 +552,7 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
                       color={active ? activeTint : isDark ? COLORS.MUTED[300] : COLORS.MUTED[500]}
                     />
                   ) : (
-                    renderCategoryIcon(opt.icon ?? "cash", opt.name, 22, opt.color || COLORS.PURPLE[700])
+                    renderCategoryIcon(opt.icon ?? "cash", opt.name, 22, opt.color || accent[700])
                   )}
                   <Text
                     fontFamily="SourceSansPro"
@@ -535,17 +659,17 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
                               py={2}
                               borderRadius={12}
                               borderWidth={1.5}
-                              borderColor={active ? COLORS.PURPLE[400] : "muted.200"}
+                              borderColor={active ? accent[400] : "muted.200"}
                               bg={active ? (isDark ? "rgba(168,85,247,0.18)" : "purple.50") : "muted.50"}>
-                              {renderCategoryIcon(w.icon ?? "cash", w.name, 18, w.color || COLORS.PURPLE[700])}
+                              {renderCategoryIcon(w.icon ?? "cash", w.name, 18, w.color || accent[700])}
                               <Text
                                 fontFamily="SourceBold"
                                 fontSize={14}
                                 color={
                                   active
                                     ? isDark
-                                      ? COLORS.PURPLE[300]
-                                      : COLORS.PURPLE[700]
+                                      ? accent[300]
+                                      : accent[700]
                                     : undefined
                                 }>
                                 {w.name}
@@ -588,7 +712,7 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
                     variant="solid"
                     isLoading={saving}
                     onPress={saveEdit}
-                    bg={editing.kind === "income" ? COLORS.EMERALD[500] : COLORS.PURPLE[700]}
+                    bg={editing.kind === "income" ? COLORS.EMERALD[500] : accent[700]}
                     borderRadius={8}
                     height="44px"
                     _text={{ fontFamily: "SourceSansPro", fontSize: 16 }}>
