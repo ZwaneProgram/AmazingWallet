@@ -1,7 +1,7 @@
 import React from "react";
-import { Actionsheet, Box, HStack, Text } from "native-base";
+import { Actionsheet, Box, HStack, Text, VStack } from "native-base";
 import { ScrollView, TouchableOpacity } from "react-native";
-import { AntDesign, MaterialCommunityIcons } from "@expo/vector-icons";
+import { AntDesign, MaterialCommunityIcons, Feather } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
 import { Wallet } from "../interfaces/Wallet";
 import { renderCategoryIcon } from "../utils/categoryIcons";
@@ -16,6 +16,11 @@ interface Props {
   onSelect: (walletId: number) => void;
   onManage: () => void;
   onOverview: () => void;
+  onTransfer: () => void;
+  // All-time balance per wallet id, plus the grand total across wallets.
+  balances?: Record<number, number>;
+  totalBalance?: number;
+  symbol?: string;
 }
 
 // Fixed row height keeps the sheet predictable. We deliberately avoid
@@ -32,6 +37,10 @@ const WalletPickerSheet: React.FC<Props> = ({
   onSelect,
   onManage,
   onOverview,
+  onTransfer,
+  balances,
+  totalBalance,
+  symbol,
 }) => {
   const isDark = useSelector((state: RootState) => state.user.theme) === "dark";
   const textColor = isDark ? "#ffffff" : "#262626";
@@ -39,6 +48,11 @@ const WalletPickerSheet: React.FC<Props> = ({
   const sheetBg = isDark ? "#1f2937" : "#ffffff";
   const activeBg = isDark ? "#3b2e63" : COLORS.PURPLE[100];
   const activeTint = isDark ? COLORS.PURPLE[300] : COLORS.PURPLE[700];
+
+  const fmtBalance = (v?: number) =>
+    v == null ? "—" : `${symbol ?? ""} ${v.toFixed(2)}`;
+  const balanceColor = (v?: number) =>
+    v == null ? iconColor : v >= 0 ? COLORS.EMERALD[500] : COLORS.DANGER[500];
 
   // Scroll only when there are enough wallets to overflow; otherwise the
   // list sizes to its content so the footer sits right beneath it.
@@ -69,11 +83,20 @@ const WalletPickerSheet: React.FC<Props> = ({
           <Text
             fontFamily="SourceSansPro"
             fontSize={17}
-            color={isActive ? activeTint : textColor}>
+            color={isActive ? activeTint : textColor}
+            numberOfLines={1}>
             {w.name}
           </Text>
         </HStack>
-        {isActive && <AntDesign name="check" size={18} color={activeTint} />}
+        <HStack space={2} alignItems="center">
+          <Text
+            fontFamily="SourceBold"
+            fontSize={15}
+            style={{ color: balanceColor(balances?.[w.id!]) }}>
+            {fmtBalance(balances?.[w.id!])}
+          </Text>
+          {isActive && <AntDesign name="check" size={16} color={activeTint} />}
+        </HStack>
       </TouchableOpacity>
     );
   });
@@ -83,6 +106,32 @@ const WalletPickerSheet: React.FC<Props> = ({
       <Actionsheet.Content
         bg={sheetBg}
         style={{ backgroundColor: sheetBg, paddingBottom: 8 }}>
+        {/* Grand total across all wallets */}
+        <Box
+          w="100%"
+          mb={2}
+          px={4}
+          py={3}
+          borderRadius={14}
+          style={{ backgroundColor: isDark ? "#111827" : COLORS.MUTED[100] }}>
+          <HStack alignItems="center" justifyContent="space-between">
+            <VStack>
+              <Text fontFamily="SourceSansPro" fontSize={13} color={iconColor}>
+                Total balance
+              </Text>
+              <Text fontFamily="SourceSansPro" fontSize={11} color={iconColor}>
+                across all wallets
+              </Text>
+            </VStack>
+            <Text
+              fontFamily="SourceBold"
+              fontSize={22}
+              style={{ color: balanceColor(totalBalance) }}>
+              {fmtBalance(totalBalance)}
+            </Text>
+          </HStack>
+        </Box>
+
         {needsScroll ? (
           <ScrollView style={{ width: "100%", maxHeight: ROW_HEIGHT * 6 }}>
             {walletRows}
@@ -92,6 +141,27 @@ const WalletPickerSheet: React.FC<Props> = ({
         )}
 
         <Box w="100%" my={1} h="1px" bg={isDark ? "#374151" : COLORS.MUTED[200]} />
+
+        <TouchableOpacity
+          activeOpacity={0.6}
+          onPress={() => {
+            onTransfer();
+            onClose();
+          }}
+          style={{
+            height: ROW_HEIGHT,
+            width: "100%",
+            flexDirection: "row",
+            alignItems: "center",
+            paddingHorizontal: 12,
+          }}>
+          <HStack space={3} alignItems="center">
+            <Feather name="repeat" size={20} color={iconColor} />
+            <Text fontFamily="SourceSansPro" fontSize={17} color={textColor}>
+              Transfer money
+            </Text>
+          </HStack>
+        </TouchableOpacity>
 
         <TouchableOpacity
           activeOpacity={0.6}

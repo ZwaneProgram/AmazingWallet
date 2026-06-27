@@ -42,6 +42,14 @@ const CalculatorModal: React.FC<CalculatorModalProps> = ({
     setExpression((prev) => {
       const last = prev.slice(-1);
 
+      if (key === "%") {
+        // percent is postfix: it needs a number in front and can't double up
+        if (prev === "" || OPERATORS.includes(last) || last === "%") {
+          return prev;
+        }
+        return prev + "%";
+      }
+
       if (OPERATORS.includes(key)) {
         if (prev === "") {
           return key === "-" ? "-" : prev; // only minus may lead
@@ -122,8 +130,7 @@ const CalculatorModal: React.FC<CalculatorModalProps> = ({
             <VStack space={2}>
               <HStack space={2}>
                 <Key label="C" onPress={clearAll} bg="rose.100" color={COLORS.DANGER[500]} />
-                <Key label="(" onPress={() => press("(")} bg={opBg} />
-                <Key label=")" onPress={() => press(")")} bg={opBg} />
+                <Key label="%" onPress={() => press("%")} bg={opBg} color={accentColor} flex={2} />
                 <Key
                   label={<Feather name="delete" size={22} color={isDark ? "#fafafa" : COLORS.MUTED[900]} />}
                   onPress={backspace}

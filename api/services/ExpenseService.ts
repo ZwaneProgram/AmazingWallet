@@ -105,18 +105,50 @@ const getAllExpenses = async (userId: number, walletId: number) => {
   }
 };
 
+// Same as getAllExpenses but across every wallet, tagging each row with its
+// wallet_id so the History screen can label rows by wallet.
+const getAllExpensesEveryWallet = async (userId: number) => {
+  try {
+    const { data, error } = await supabase
+      .from(EXPENSES)
+      .select("id, amount, description, date, category_id, wallet_id, categories(name, color)")
+      .eq("user_id", userId)
+      .order("date", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      amount: row.amount,
+      description: row.description,
+      payDate: row.date,
+      categoryId: row.category_id,
+      walletId: row.wallet_id,
+      name: row.categories?.name,
+      color: row.categories?.color,
+    }));
+  } catch (error) {
+    console.log("getAllExpensesEveryWallet failed:", error);
+    return [];
+  }
+};
+
 const updateExpense = async (
   id: number,
-  fields: { amount: number; description?: string; categoryId?: number }
+  fields: { amount: number; description?: string; categoryId?: number; walletId?: number }
 ) => {
-  const { error } = await supabase
-    .from(EXPENSES)
-    .update({
-      amount: fields.amount,
-      description: fields.description,
-      category_id: fields.categoryId,
-    })
-    .eq("id", id);
+  const update: Record<string, any> = {
+    amount: fields.amount,
+    description: fields.description,
+    category_id: fields.categoryId,
+  };
+  if (fields.walletId != null) {
+    update.wallet_id = fields.walletId;
+  }
+
+  const { error } = await supabase.from(EXPENSES).update(update).eq("id", id);
 
   if (error) {
     throw error;
@@ -137,6 +169,7 @@ export const ExpenseService = {
   convertExpensesCurrency,
   removeUserExpenses,
   getAllExpenses,
+  getAllExpensesEveryWallet,
   updateExpense,
   deleteExpense,
 };

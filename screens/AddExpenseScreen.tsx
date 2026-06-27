@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { HStack, Text, VStack, View, Pressable, Box, ScrollView, useTheme } from "native-base";
+import { HStack, Text, VStack, View, Pressable, Box, useTheme } from "native-base";
 import { SafeAreaView, TouchableOpacity } from "react-native";
 import { AntDesign, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { NavigationProp, ParamListBase, RouteProp } from "@react-navigation/native";
@@ -38,6 +38,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
   } = useTheme();
 
   const user = useSelector((state: RootState) => state.user);
+  const isDark = user.theme === "dark";
   const categories = useSelector(categoriesSelector);
   const wallets = useSelector(walletsSelector);
   const activeWalletName = wallets.find((w: any) => w.id === user.activeWalletId)?.name ?? "";
@@ -62,11 +63,13 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
         const numericFormat = Number(formatAmount);
 
         if (isIncome) {
+          const incomeCategory = categories.find((item: Category) => item.name === category);
           const income = {
             userId: Number(user.id),
             amount: numericFormat,
             description,
             walletId: user.activeWalletId,
+            categoryId: incomeCategory?.id,
           };
 
           await IncomeService.addIncome(income);
@@ -75,6 +78,8 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
             addIncomeAction({
               ...income,
               payDate: moment().format("YYYY-MM-DD"),
+              name: incomeCategory?.name,
+              color: incomeCategory?.color,
             })
           );
 
@@ -229,10 +234,10 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                 error={touched.amount && errors.amount}
               />
 
-              {!isIncome && (
+              {(
                 <>
                   <Text alignSelf="flex-start" fontFamily="SourceSansPro" fontSize={20}>
-                    Category
+                    {isIncome ? "Category (optional)" : "Category"}
                   </Text>
                   <Box
                     flexDirection="row"
@@ -252,69 +257,130 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                   </Box>
 
                   {selectedParentSubs.length > 0 && (
-                    <VStack alignSelf="flex-start" width="100%" space={2}>
-                      <Text fontFamily="SourceSansPro" fontSize={16}>
-                        Subcategory (optional)
-                      </Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        <HStack space={2}>
-                          <Pressable onPress={() => selectCategory(selectedParent!.name)}>
-                            <Box
-                              px={3}
-                              py={2}
-                              borderRadius={12}
-                              borderWidth={1.5}
-                              borderColor={
+                    <Box
+                      width="100%"
+                      bg={isDark ? "#1f2937" : "muted.100"}
+                      borderRadius={16}
+                      p={3}
+                      style={{
+                        borderLeftWidth: 4,
+                        borderLeftColor: selectedParent!.color || COLORS.PURPLE[700],
+                      }}>
+                      {/* Header makes it read as a step *inside* the chosen category */}
+                      <HStack alignItems="center" space={2} mb={3}>
+                        <Box
+                          width="30px"
+                          height="30px"
+                          borderRadius={10}
+                          justifyContent="center"
+                          alignItems="center"
+                          style={{ backgroundColor: selectedParent!.color || COLORS.PURPLE[700] }}>
+                          {renderCategoryIcon(selectedParent!.icon, selectedParent!.name, 17, "#fff")}
+                        </Box>
+                        <VStack>
+                          <Text fontFamily="SourceBold" fontSize={15}>
+                            {selectedParent!.name}
+                          </Text>
+                          <Text fontFamily="SourceSansPro" fontSize={12} color="muted.400">
+                            Pick a subcategory (optional)
+                          </Text>
+                        </VStack>
+                      </HStack>
+
+                      <Box flexDirection="row" flexWrap="wrap" style={{ marginHorizontal: -4 }}>
+                        {/* "General" = the parent itself, no sub */}
+                        <Pressable
+                          onPress={() => selectCategory(selectedParent!.name)}
+                          style={{ margin: 4 }}>
+                          <Box
+                            px={3}
+                            py={2}
+                            borderRadius={12}
+                            borderWidth={1.5}
+                            borderColor={
+                              values.category === selectedParent!.name
+                                ? COLORS.EMERALD[400]
+                                : isDark
+                                ? "#374151"
+                                : "muted.200"
+                            }
+                            bg={
+                              values.category === selectedParent!.name
+                                ? isDark
+                                  ? "rgba(52,211,153,0.18)"
+                                  : "#ecfdf5"
+                                : isDark
+                                ? "#111827"
+                                : "muted.50"
+                            }>
+                            <Text
+                              fontFamily="SourceBold"
+                              fontSize={14}
+                              color={
                                 values.category === selectedParent!.name
-                                  ? COLORS.EMERALD[400]
-                                  : "muted.200"
-                              }
-                              bg={values.category === selectedParent!.name ? "emerald.50" : "muted.50"}>
-                              <Text
-                                fontFamily="SourceBold"
-                                fontSize={14}
-                                color={
-                                  values.category === selectedParent!.name ? "#262626" : undefined
+                                  ? isDark
+                                    ? COLORS.EMERALD[300]
+                                    : COLORS.EMERALD[500]
+                                  : undefined
+                              }>
+                              General
+                            </Text>
+                          </Box>
+                        </Pressable>
+
+                        {selectedParentSubs.map((sub: Category) => {
+                          const subActive = values.category === sub.name;
+                          return (
+                            <Pressable
+                              key={sub.id}
+                              onPress={() => selectCategory(sub.name)}
+                              style={{ margin: 4 }}>
+                              <HStack
+                                alignItems="center"
+                                space={2}
+                                px={3}
+                                py={2}
+                                borderRadius={12}
+                                borderWidth={1.5}
+                                borderColor={
+                                  subActive ? COLORS.EMERALD[400] : isDark ? "#374151" : "muted.200"
+                                }
+                                bg={
+                                  subActive
+                                    ? isDark
+                                      ? "rgba(52,211,153,0.18)"
+                                      : "#ecfdf5"
+                                    : isDark
+                                    ? "#111827"
+                                    : "muted.50"
                                 }>
-                                {selectedParent!.name}
-                              </Text>
-                            </Box>
-                          </Pressable>
-                          {selectedParentSubs.map((sub: Category) => {
-                            const subActive = values.category === sub.name;
-                            return (
-                              <Pressable key={sub.id} onPress={() => selectCategory(sub.name)}>
-                                <HStack
+                                <Box
+                                  width="26px"
+                                  height="26px"
+                                  borderRadius={10}
+                                  justifyContent="center"
                                   alignItems="center"
-                                  space={2}
-                                  px={3}
-                                  py={2}
-                                  borderRadius={12}
-                                  borderWidth={1.5}
-                                  borderColor={subActive ? COLORS.EMERALD[400] : "muted.200"}
-                                  bg={subActive ? "emerald.50" : "muted.50"}>
-                                  <Box
-                                    width="26px"
-                                    height="26px"
-                                    borderRadius={10}
-                                    justifyContent="center"
-                                    alignItems="center"
-                                    style={{ backgroundColor: sub.color || COLORS.PURPLE[700] }}>
-                                    {renderCategoryIcon(sub.icon, sub.name, 15, "#fff")}
-                                  </Box>
-                                  <Text
-                                    fontFamily="SourceBold"
-                                    fontSize={14}
-                                    color={subActive ? "#262626" : undefined}>
-                                    {sub.name}
-                                  </Text>
-                                </HStack>
-                              </Pressable>
-                            );
-                          })}
-                        </HStack>
-                      </ScrollView>
-                    </VStack>
+                                  style={{ backgroundColor: sub.color || COLORS.PURPLE[700] }}>
+                                  {renderCategoryIcon(sub.icon, sub.name, 15, "#fff")}
+                                </Box>
+                                <Text
+                                  fontFamily="SourceBold"
+                                  fontSize={14}
+                                  color={
+                                    subActive
+                                      ? isDark
+                                        ? COLORS.EMERALD[300]
+                                        : COLORS.EMERALD[500]
+                                      : undefined
+                                  }>
+                                  {sub.name}
+                                </Text>
+                              </HStack>
+                            </Pressable>
+                          );
+                        })}
+                      </Box>
+                    </Box>
                   )}
 
                   {touched.category && errors.category && (

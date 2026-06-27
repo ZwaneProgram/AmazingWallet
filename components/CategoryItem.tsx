@@ -3,7 +3,6 @@ import { Box, HStack, Pressable, Text } from "native-base";
 import { useWindowDimensions } from "react-native";
 import { Category } from "../interfaces/Category";
 import { renderCategoryIcon } from "../utils/categoryIcons";
-import { AntDesign } from "@expo/vector-icons";
 import COLORS from "../colors";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
@@ -22,6 +21,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
   disabled,
 }) => {
   const user: any = useSelector((state: RootState) => state.user);
+  const isDark = user.theme === "dark";
   const { width } = useWindowDimensions();
 
   const { name, color, icon } = category;
@@ -33,6 +33,11 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
   // clipped the right-column cards / truncated labels.
   const cardWidth = Math.min((width - 72) / 2, 260);
 
+  // Selected = filled accent tint + accent border + accent label, so a chosen
+  // card reads as "this one is picked" rather than a subtle on/off toggle.
+  const selectedBg = isDark ? "rgba(52,211,153,0.18)" : "#ecfdf5";
+  const selectedText = isDark ? COLORS.EMERALD[300] : COLORS.EMERALD[500];
+
   return (
     <Pressable
       disabled={disabled}
@@ -40,16 +45,16 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
       _pressed={{ opacity: 0.4 }}
       width={`${cardWidth}px`}
       onStartShouldSetResponder={() => true}
-      borderColor={isSelected ? COLORS.EMERALD[400] : "muted.100"}
-      borderWidth={user.theme === "dark" ? 0 : 1.5}
-      bg="muted.50"
+      borderColor={isSelected ? COLORS.EMERALD[400] : isDark ? "transparent" : "muted.100"}
+      borderWidth={isSelected ? 2 : isDark ? 0 : 1.5}
+      bg={isSelected ? selectedBg : "muted.50"}
       style={{
         height: 64,
         justifyContent: "center",
-        shadowColor: "#171717",
+        shadowColor: isSelected ? COLORS.EMERALD[400] : "#171717",
         shadowOffset: { width: 0, height: 0 },
-        shadowOpacity: 0.1,
-        shadowRadius: 4,
+        shadowOpacity: isSelected ? 0.25 : 0.1,
+        shadowRadius: isSelected ? 6 : 4,
       }}
       borderRadius={20}
       px={2.5}>
@@ -67,15 +72,11 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
           fontFamily="SourceBold"
           numberOfLines={1}
           style={{ flex: 1 }}
-          fontSize={15}>
+          fontSize={15}
+          color={isSelected ? selectedText : undefined}>
           {name}
         </Text>
       </HStack>
-      {isSelected && (
-        <Box position="absolute" right="-5px" bottom="-5px" bg="muted.100" borderRadius={20}>
-          <AntDesign name="check-circle" size={24} color={COLORS.EMERALD[400]} />
-        </Box>
-      )}
     </Pressable>
   );
 };

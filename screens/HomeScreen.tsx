@@ -30,7 +30,6 @@ import { UserService } from "../api/services/UserService";
 import { Budget } from "../interfaces/Budget";
 import { StatusBar } from "expo-status-bar";
 import {
-  balanceSelector,
   categoriesSelector,
   categoryRollupSelector,
   monthIncomeTotalSelector,
@@ -49,6 +48,7 @@ import moment from "moment";
 import { setActiveWalletAction, setMonthAction, setYearAction } from "../redux/userReducer";
 import MonthYearPickerModal from "../components/MonthYearPickerModal";
 import WalletPickerSheet from "../components/WalletPickerSheet";
+import TransferModal from "../components/TransferModal";
 import GroupedTransactionList from "../components/GroupedTransactionList";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WalletService } from "../api/services/WalletService";
@@ -64,13 +64,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [pickerOpen, setPickerOpen] = useState<boolean>(false);
   const [walletSheetOpen, setWalletSheetOpen] = useState<boolean>(false);
+  const [transferOpen, setTransferOpen] = useState<boolean>(false);
+  const [walletBalances, setWalletBalances] = useState<Record<number, number>>({});
   const { expenses } = useSelector((state: RootState) => state.expenses);
   const incomes = useSelector((state: RootState) => state.expenses.incomes);
   const categories = useSelector(categoriesSelector);
   const todayTotal = useSelector(todayTotalSelector);
   const monthTotal = useSelector(monthTotalSelector);
   const monthIncomeTotal = useSelector(monthIncomeTotalSelector);
-  const balance = useSelector(balanceSelector);
   const monthlyBudgets = useSelector(monthlyBudgetsSelector);
   const rollup = useSelector(categoryRollupSelector);
   const wallets = useSelector(walletsSelector);
@@ -178,6 +179,41 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       getGeneralInfo();
     }
   }, [user]);
+
+  // All-time balance per wallet (income - expense across every month), loaded
+  // when the wallet sheet opens so the figures are always current.
+  const loadWalletBalances = async () => {
+    const [exp, inc, transfers] = await Promise.all([
+      ExpenseService.getAllExpensesEveryWallet(user.id),
+      IncomeService.getAllIncomesEveryWallet(user.id),
+      WalletService.getAllTransfers(user.id),
+    ]);
+    const map: Record<number, number> = {};
+    (wallets as any[]).forEach((w: any) => w.id != null && (map[w.id] = 0));
+    inc.forEach((i: any) => {
+      if (i.walletId != null) map[i.walletId] = (map[i.walletId] ?? 0) + Number(i.amount);
+    });
+    exp.forEach((e: any) => {
+      if (e.walletId != null) map[e.walletId] = (map[e.walletId] ?? 0) - Number(e.amount);
+    });
+    transfers.forEach((t: any) => {
+      if (t.fromWalletId != null) map[t.fromWalletId] = (map[t.fromWalletId] ?? 0) - Number(t.amount);
+      if (t.toWalletId != null) map[t.toWalletId] = (map[t.toWalletId] ?? 0) + Number(t.amount);
+    });
+    setWalletBalances(map);
+  };
+
+  // Refresh balances whenever the screen regains focus (after adding a
+  // transaction, a transfer, switching wallet, etc.) or the sheet opens, so the
+  // Home "Balance" always reflects the wallet's true running balance.
+  useEffect(() => {
+    if (isFocused) {
+      loadWalletBalances();
+    }
+  }, [isFocused, walletSheetOpen, user.activeWalletId]);
+
+  const totalWalletBalance = Object.values(walletBalances).reduce((a, b) => a + b, 0);
+  const activeWalletBalance = walletBalances[user.activeWalletId] ?? 0;
 
   const getAllCategories = async () => {
     return await CategoryService.getUserCategories(user.id);
@@ -361,14 +397,19 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
               </HStack>
               <Divider my={3} bg="muted.200" />
               <HStack justifyContent="space-between" alignItems="center">
-                <Text fontFamily="SourceBold" fontSize={18}>
-                  Balance
-                </Text>
+                <VStack>
+                  <Text fontFamily="SourceBold" fontSize={18}>
+                    Balance
+                  </Text>
+                  <Text fontFamily="SourceSansPro" fontSize={12} color="muted.400">
+                    {activeWallet?.name ?? "Wallet"} · all-time
+                  </Text>
+                </VStack>
                 <Text
                   fontFamily="SourceBold"
                   fontSize={24}
-                  color={balance >= 0 ? "emerald.500" : "danger.500"}>
-                  {user.symbol} {balance.toFixed(2)}
+                  color={activeWalletBalance >= 0 ? "emerald.500" : "danger.500"}>
+                  {user.symbol} {activeWalletBalance.toFixed(2)}
                 </Text>
               </HStack>
             </Box>
@@ -538,12 +579,34 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         onClose={() => setWalletSheetOpen(false)}
         wallets={wallets}
         activeWalletId={user.activeWalletId}
+        balances={walletBalances}
+        totalBalance={totalWalletBalance}
+        symbol={user.symbol}
         onSelect={(walletId) => {
           dispatch(setActiveWalletAction(walletId));
           applyPeriod(user.month, selectedYear, walletId);
         }}
         onManage={() => navigation.navigate("ManageWallets")}
         onOverview={() => navigation.navigate("WalletsOverview")}
+        onTransfer={() => setTransferOpen(true)}
+      />
+
+      <TransferModal
+        isOpen={transferOpen}
+        onClose={() => setTransferOpen(false)}
+        wallets={wallets}
+        defaultFromId={user.activeWalletId}
+        symbol={user.symbol}
+        onSubmit={async ({ fromWalletId, toWalletId, amount, description }) => {
+          await WalletService.createTransfer({
+            userId: Number(user.id),
+            fromWalletId,
+            toWalletId,
+            amount,
+            description,
+          });
+          await loadWalletBalances();
+        }}
       />
     </View>
   );

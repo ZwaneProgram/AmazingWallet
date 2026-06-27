@@ -10,9 +10,10 @@ import {
   Modal,
   Spinner,
   Divider,
+  Actionsheet,
 } from "native-base";
-import { Alert, Platform } from "react-native";
-import { Feather } from "@expo/vector-icons";
+import { Alert, Platform, TouchableOpacity } from "react-native";
+import { Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { NavigationProp, ParamListBase } from "@react-navigation/native";
 import EZHeaderTitle from "../components/shared/EzHeaderTitle";
 import { useDispatch, useSelector } from "react-redux";
@@ -23,6 +24,7 @@ import { renderCategoryIcon } from "../utils/categoryIcons";
 import { ExpenseService } from "../api/services/ExpenseService";
 import { IncomeService } from "../api/services/IncomeService";
 import { CategoryService } from "../api/services/CategoryService";
+import { WalletService } from "../api/services/WalletService";
 import { Category } from "../interfaces/Category";
 import EZInput from "../components/shared/EZInput";
 import EZButton from "../components/shared/EZButton";
@@ -35,9 +37,10 @@ import {
   setCategoriesAction,
   updateExpenseAction,
   updateIncomeAction,
+  walletsSelector,
 } from "../redux/expensesReducers";
 
-type Kind = "expense" | "income";
+type Kind = "expense" | "income" | "transfer";
 type Filter = "all" | "expense" | "income";
 
 interface Txn {
@@ -49,6 +52,14 @@ interface Txn {
   name?: string;
   color?: string;
   categoryId?: number;
+  walletId?: number;
+  walletName?: string;
+  walletColor?: string;
+  // transfer-only
+  fromWalletId?: number;
+  toWalletId?: number;
+  fromWalletName?: string;
+  toWalletName?: string;
 }
 
 interface TransactionsScreenProps {
@@ -59,16 +70,20 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
   const dispatch = useDispatch();
   const user: any = useSelector((state: RootState) => state.user);
   const categories = useSelector(categoriesSelector);
+  const wallets = useSelector(walletsSelector);
 
   const [loading, setLoading] = useState<boolean>(true);
   const [transactions, setTransactions] = useState<Txn[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
+  const [walletFilter, setWalletFilter] = useState<number | "all">("all");
+  const [walletSheetOpen, setWalletSheetOpen] = useState<boolean>(false);
 
   // edit modal state
   const [editing, setEditing] = useState<Txn | null>(null);
   const [editAmount, setEditAmount] = useState<string>("");
   const [editDescription, setEditDescription] = useState<string>("");
   const [editCategoryId, setEditCategoryId] = useState<number | undefined>(undefined);
+  const [editWalletId, setEditWalletId] = useState<number | undefined>(undefined);
   const [saving, setSaving] = useState<boolean>(false);
 
   // Alert.alert is a no-op on web, so fall back to the browser dialogs there.
@@ -101,14 +116,28 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
 
   const loadTransactions = async () => {
     setLoading(true);
-    const [expenses, incomes] = await Promise.all([
-      ExpenseService.getAllExpenses(user.id, user.activeWalletId),
-      IncomeService.getAllIncomes(user.id, user.activeWalletId),
+    const [expenses, incomes, transfers] = await Promise.all([
+      ExpenseService.getAllExpensesEveryWallet(user.id),
+      IncomeService.getAllIncomesEveryWallet(user.id),
+      WalletService.getAllTransfers(user.id),
     ]);
 
+    const walletById = new Map<number, any>();
+    (wallets ?? []).forEach((w: any) => w.id != null && walletById.set(w.id, w));
+    const tagWallet = (row: any) => {
+      const w = row.walletId != null ? walletById.get(row.walletId) : undefined;
+      return { ...row, walletName: w?.name, walletColor: w?.color };
+    };
+
     const merged: Txn[] = [
-      ...expenses.map((e: any) => ({ ...e, kind: "expense" as Kind })),
-      ...incomes.map((i: any) => ({ ...i, kind: "income" as Kind })),
+      ...expenses.map((e: any) => ({ ...tagWallet(e), kind: "expense" as Kind })),
+      ...incomes.map((i: any) => ({ ...tagWallet(i), kind: "income" as Kind })),
+      ...transfers.map((t: any) => ({
+        ...t,
+        kind: "transfer" as Kind,
+        fromWalletName: walletById.get(t.fromWalletId)?.name,
+        toWalletName: walletById.get(t.toWalletId)?.name,
+      })),
     ].sort((a, b) => (a.payDate < b.payDate ? 1 : a.payDate > b.payDate ? -1 : b.id - a.id));
 
     setTransactions(merged);
@@ -128,13 +157,36 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
   useEffect(() => {
     loadTransactions();
     ensureCategories();
-  }, [user.activeWalletId]);
+  }, [user.activeWalletId, wallets]);
 
   const openEditor = (txn: Txn) => {
+    // Transfers aren't edited inline — tapping one offers to delete (which
+    // cleanly reverses the moved balance).
+    if (txn.kind === "transfer") {
+      confirmAction(
+        "Delete transfer",
+        `Remove the transfer of ${user.symbol ?? ""} ${txn.amount.toFixed(2)} from ${
+          txn.fromWalletName ?? "wallet"
+        } to ${txn.toWalletName ?? "wallet"}?`,
+        () => deleteTransfer(txn.id)
+      );
+      return;
+    }
     setEditing(txn);
     setEditAmount(String(txn.amount).replace(".", ","));
     setEditDescription(txn.description ?? "");
     setEditCategoryId(txn.categoryId);
+    setEditWalletId(txn.walletId);
+  };
+
+  const deleteTransfer = async (id: number) => {
+    try {
+      await WalletService.deleteTransfer(id);
+      setTransactions((prev) => prev.filter((t) => !(t.id === id && t.kind === "transfer")));
+    } catch (error) {
+      console.log("deleteTransfer failed:", error);
+      notify("Error", "Could not delete the transfer. Please try again.");
+    }
   };
 
   const closeEditor = () => {
@@ -150,6 +202,13 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
       return;
     }
 
+    const wallet = (wallets ?? []).find((w: any) => w.id === editWalletId);
+    const walletPatch = {
+      walletId: editWalletId,
+      walletName: wallet?.name,
+      walletColor: wallet?.color,
+    };
+
     setSaving(true);
     try {
       if (editing.kind === "expense") {
@@ -158,6 +217,7 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
           amount: numericAmount,
           description: editDescription,
           categoryId: editCategoryId,
+          walletId: editWalletId,
         });
         const patch = {
           id: editing.id,
@@ -169,17 +229,31 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
         };
         dispatch(updateExpenseAction(patch));
         setTransactions((prev) =>
-          prev.map((t) => (t.id === editing.id && t.kind === "expense" ? { ...t, ...patch } : t))
+          prev.map((t) =>
+            t.id === editing.id && t.kind === "expense" ? { ...t, ...patch, ...walletPatch } : t
+          )
         );
       } else {
+        const category = categories.find((c: Category) => c.id === editCategoryId);
         await IncomeService.updateIncome(editing.id, {
           amount: numericAmount,
           description: editDescription,
+          walletId: editWalletId,
+          categoryId: editCategoryId,
         });
-        const patch = { id: editing.id, amount: numericAmount, description: editDescription };
+        const patch = {
+          id: editing.id,
+          amount: numericAmount,
+          description: editDescription,
+          categoryId: editCategoryId,
+          name: category?.name ?? editing.name,
+          color: category?.color ?? editing.color,
+        };
         dispatch(updateIncomeAction(patch));
         setTransactions((prev) =>
-          prev.map((t) => (t.id === editing.id && t.kind === "income" ? { ...t, ...patch } : t))
+          prev.map((t) =>
+            t.id === editing.id && t.kind === "income" ? { ...t, ...patch, ...walletPatch } : t
+          )
         );
       }
       closeEditor();
@@ -217,12 +291,61 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
     }
   };
 
-  const visible = transactions.filter((t) => filter === "all" || t.kind === filter);
+  const visible = transactions.filter((t) => {
+    // Expenses/Income filter hides transfers (they're neither).
+    if (filter !== "all" && t.kind !== filter) return false;
+    if (walletFilter === "all") return true;
+    if (t.kind === "transfer") {
+      return t.fromWalletId === walletFilter || t.toWalletId === walletFilter;
+    }
+    return t.walletId === walletFilter;
+  });
+
+  const isDark = user.theme === "dark";
+  const selectedWallet =
+    walletFilter === "all" ? null : (wallets ?? []).find((w: any) => w.id === walletFilter);
+  const sheetBg = isDark ? "#1f2937" : "#ffffff";
 
   return (
     <View flex={1}>
       <StatusBar style="light" />
       <View flex={1} pt={6} px={6}>
+        {/* Wallet filter */}
+        <Pressable onPress={() => setWalletSheetOpen(true)} mb={3}>
+          <HStack
+            bg={isDark ? "muted.50" : "muted.100"}
+            borderRadius={12}
+            px={4}
+            py={3}
+            alignItems="center"
+            justifyContent="space-between">
+            <HStack space={2} alignItems="center" flex={1}>
+              {selectedWallet ? (
+                renderCategoryIcon(
+                  selectedWallet.icon ?? "cash",
+                  selectedWallet.name,
+                  20,
+                  selectedWallet.color || COLORS.PURPLE[700]
+                )
+              ) : (
+                <MaterialCommunityIcons
+                  name="wallet-outline"
+                  size={20}
+                  color={isDark ? COLORS.MUTED[300] : COLORS.MUTED[500]}
+                />
+              )}
+              <Text fontFamily="SourceBold" fontSize={16} numberOfLines={1}>
+                {selectedWallet ? selectedWallet.name : "All wallets"}
+              </Text>
+            </HStack>
+            <Feather
+              name="chevron-down"
+              size={20}
+              color={isDark ? COLORS.MUTED[300] : COLORS.MUTED[500]}
+            />
+          </HStack>
+        </Pressable>
+
         {/* Filter */}
         <HStack bg={user.theme === "dark" ? "muted.50" : "muted.100"} borderRadius={12} p={1} mb={4}>
           {(["all", "expense", "income"] as Filter[]).map((f) => {
@@ -255,11 +378,71 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
               transactions={visible}
               categories={categories}
               symbol={user.symbol}
+              walletPerspective={walletFilter === "all" ? undefined : walletFilter}
               onPressTransaction={openEditor}
             />
           </ScrollView>
         )}
       </View>
+
+      {/* Wallet filter sheet */}
+      <Actionsheet isOpen={walletSheetOpen} onClose={() => setWalletSheetOpen(false)}>
+        <Actionsheet.Content bg={sheetBg} style={{ backgroundColor: sheetBg, paddingBottom: 8 }}>
+          {(
+            [
+              { key: "all" as const, name: "All wallets", icon: null, color: null },
+              ...(wallets ?? []).map((w: any) => ({
+                key: w.id as number,
+                name: w.name,
+                icon: w.icon,
+                color: w.color,
+              })),
+            ]
+          ).map((opt) => {
+            const active = walletFilter === opt.key;
+            const activeBg = isDark ? "#3b2e63" : COLORS.PURPLE[100];
+            const activeTint = isDark ? COLORS.PURPLE[300] : COLORS.PURPLE[700];
+            return (
+              <TouchableOpacity
+                key={String(opt.key)}
+                activeOpacity={0.6}
+                onPress={() => {
+                  setWalletFilter(opt.key);
+                  setWalletSheetOpen(false);
+                }}
+                style={{
+                  height: 56,
+                  width: "100%",
+                  flexDirection: "row",
+                  alignItems: "center",
+                  justifyContent: "space-between",
+                  paddingHorizontal: 12,
+                  borderRadius: 12,
+                  backgroundColor: active ? activeBg : "transparent",
+                }}>
+                <HStack space={3} alignItems="center" flex={1}>
+                  {opt.key === "all" ? (
+                    <MaterialCommunityIcons
+                      name="wallet-outline"
+                      size={22}
+                      color={active ? activeTint : isDark ? COLORS.MUTED[300] : COLORS.MUTED[500]}
+                    />
+                  ) : (
+                    renderCategoryIcon(opt.icon ?? "cash", opt.name, 22, opt.color || COLORS.PURPLE[700])
+                  )}
+                  <Text
+                    fontFamily="SourceSansPro"
+                    fontSize={17}
+                    color={active ? activeTint : isDark ? "#ffffff" : "#262626"}>
+                    {opt.name}
+                  </Text>
+                </HStack>
+                {active && <Feather name="check" size={18} color={activeTint} />}
+              </TouchableOpacity>
+            );
+          })}
+        </Actionsheet.Content>
+      </Actionsheet>
 
       {/* Edit modal */}
       <Modal isOpen={!!editing} onClose={closeEditor} avoidKeyboard>
@@ -287,10 +470,10 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
                   borderColor="muted.200"
                 />
 
-                {editing.kind === "expense" && (
+                {(
                   <VStack space={2}>
                     <Text fontFamily="SourceBold" fontSize={16}>
-                      Category
+                      {editing.kind === "income" ? "Category (optional)" : "Category"}
                     </Text>
                     <Box flexDirection="row" flexWrap="wrap" style={{ marginHorizontal: -4 }}>
                       {categories.map((c: Category) => {
@@ -323,6 +506,49 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
                                 fontSize={14}
                                 color={active ? "#262626" : undefined}>
                                 {c.name}
+                              </Text>
+                            </HStack>
+                          </Pressable>
+                        );
+                      })}
+                    </Box>
+                  </VStack>
+                )}
+
+                {(wallets ?? []).length > 1 && (
+                  <VStack space={2}>
+                    <Text fontFamily="SourceBold" fontSize={16}>
+                      Wallet
+                    </Text>
+                    <Box flexDirection="row" flexWrap="wrap" style={{ marginHorizontal: -4 }}>
+                      {(wallets as any[]).map((w: any) => {
+                        const active = w.id === editWalletId;
+                        return (
+                          <Pressable
+                            key={w.id}
+                            onPress={() => setEditWalletId(w.id)}
+                            style={{ margin: 4 }}>
+                            <HStack
+                              alignItems="center"
+                              space={2}
+                              px={3}
+                              py={2}
+                              borderRadius={12}
+                              borderWidth={1.5}
+                              borderColor={active ? COLORS.PURPLE[400] : "muted.200"}
+                              bg={active ? (isDark ? "rgba(168,85,247,0.18)" : "purple.50") : "muted.50"}>
+                              {renderCategoryIcon(w.icon ?? "cash", w.name, 18, w.color || COLORS.PURPLE[700])}
+                              <Text
+                                fontFamily="SourceBold"
+                                fontSize={14}
+                                color={
+                                  active
+                                    ? isDark
+                                      ? COLORS.PURPLE[300]
+                                      : COLORS.PURPLE[700]
+                                    : undefined
+                                }>
+                                {w.name}
                               </Text>
                             </HStack>
                           </Pressable>

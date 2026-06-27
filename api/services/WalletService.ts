@@ -1,5 +1,5 @@
 import { supabase } from "../supabase";
-import { WALLETS } from "../../constants/Tables";
+import { WALLETS, WALLET_TRANSFERS } from "../../constants/Tables";
 import { GET_WALLET_SUMMARIES } from "../../constants/PostgresFunctions";
 import { Wallet, WalletSummary } from "../../interfaces/Wallet";
 import { UserService } from "./UserService";
@@ -156,6 +156,54 @@ const getWalletSummaries = async (
   }
 };
 
+// --- Transfers between wallets ---------------------------------------------
+// A transfer just moves money; it is NOT an income or expense, so it lives in
+// its own table and never touches the expense/income/budget aggregations.
+
+const createTransfer = async (input: {
+  userId: number;
+  fromWalletId: number;
+  toWalletId: number;
+  amount: number;
+  description?: string;
+}): Promise<void> => {
+  const { error } = await supabase.from(WALLET_TRANSFERS).insert({
+    user_id: input.userId,
+    from_wallet_id: input.fromWalletId,
+    to_wallet_id: input.toWalletId,
+    amount: input.amount,
+    description: input.description ?? null,
+  });
+  if (error) throw error;
+};
+
+const getAllTransfers = async (userId: number) => {
+  try {
+    const { data, error } = await supabase
+      .from(WALLET_TRANSFERS)
+      .select("*")
+      .eq("user_id", userId)
+      .order("date", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      amount: row.amount,
+      description: row.description,
+      payDate: row.date,
+      fromWalletId: row.from_wallet_id,
+      toWalletId: row.to_wallet_id,
+    }));
+  } catch (error) {
+    console.log("getAllTransfers failed:", error);
+    return [];
+  }
+};
+
+const deleteTransfer = async (id: number): Promise<void> => {
+  const { error } = await supabase.from(WALLET_TRANSFERS).delete().eq("id", id);
+  if (error) throw error;
+};
+
 export const WalletService = {
   getUserWallets,
   createWallet,
@@ -165,4 +213,7 @@ export const WalletService = {
   deleteWallet,
   seedDefaultWallet,
   getWalletSummaries,
+  createTransfer,
+  getAllTransfers,
+  deleteTransfer,
 };
