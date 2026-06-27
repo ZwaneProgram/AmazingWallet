@@ -101,9 +101,7 @@ const GroupedTransactionList: React.FC<Props> = ({
               borderRadius={16}
               justifyContent="center"
               alignItems="center"
-              style={{
-                backgroundColor: isIncome ? COLORS.EMERALD[500] : txn.color || COLORS.PURPLE[700],
-              }}>
+              style={{ backgroundColor: "rgba(255,255,255,0.22)" }}>
               {isIncome ? (
                 <Feather name="arrow-down-left" size={22} color="#fff" />
               ) : (
@@ -160,7 +158,7 @@ const GroupedTransactionList: React.FC<Props> = ({
                 borderRadius={16}
                 justifyContent="center"
                 alignItems="center"
-                style={{ backgroundColor: parent.color || COLORS.PURPLE[700] }}>
+                style={{ backgroundColor: "rgba(255,255,255,0.22)" }}>
                 {renderCategoryIcon(parent.icon, parent.name, 22, "#fff") ?? (
                   <Feather name="arrow-up-right" size={22} color="#fff" />
                 )}
@@ -209,7 +207,7 @@ const GroupedTransactionList: React.FC<Props> = ({
                       borderRadius={12}
                       justifyContent="center"
                       alignItems="center"
-                      style={{ backgroundColor: child.color || COLORS.PURPLE[700] }}>
+                      style={{ backgroundColor: "rgba(255,255,255,0.22)" }}>
                       {renderCategoryIcon(catIcon(categories, child.categoryId), child.name, 16, "#fff") ?? (
                         <Feather name="arrow-up-right" size={16} color="#fff" />
                       )}

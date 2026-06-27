@@ -35,6 +35,7 @@ const CategoriesScreen: React.FC<CategoriesScrennProps> = ({ navigation }) => {
             paddingBottom: 5,
           }}
           numColumns={2}
+          columnWrapperStyle={{ justifyContent: "space-evenly" }}
           showsVerticalScrollIndicator={false}
           ItemSeparatorComponent={() => <View margin={4} />}
           data={categories}

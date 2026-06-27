@@ -403,7 +403,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                     right={"20px"}
                     _pressed={{ bg: "purple.600" }}
                     bg="purple.700"
-                    bottom={`${TAB_BAR_HEIGHT + 20}px`}
+                    bottom={`${TAB_BAR_HEIGHT + insets.bottom + 20}px`}
                     icon={<Icon color="white" size={26} as={<AntDesign name="plus" />} />}
                   />
                 )}
@@ -415,20 +415,21 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   History
                 </Text>
                 {recentTransactions.length > 0 && (
-                  <EZButton
-                    _text={{
-                      fontFamily: "SourceBold",
-                      color: COLORS.PURPLE[700],
-                      fontSize: 17,
-                    }}
-                    variant="unstyled"
+                  <Pressable
+                    flexShrink={0}
                     _pressed={{ opacity: 0.4 }}
-                    onPress={() => navigation.navigate("History")}
-                    rightIcon={
+                    onPress={() => navigation.navigate("History")}>
+                    <HStack alignItems="center" space={1} flexShrink={0}>
+                      <Text
+                        fontFamily="SourceBold"
+                        color={COLORS.PURPLE[700]}
+                        fontSize={17}
+                        numberOfLines={1}>
+                        View all
+                      </Text>
                       <Feather name="chevron-right" size={20} color={COLORS.PURPLE[700]} />
-                    }>
-                    View all
-                  </EZButton>
+                    </HStack>
+                  </Pressable>
                 )}
               </HStack>
 

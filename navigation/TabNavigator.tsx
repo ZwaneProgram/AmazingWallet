@@ -8,6 +8,7 @@ import GraphScreen from "../screens/GraphScreen";
 import TransactionsScreen from "../screens/TransactionsScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import { Animated, useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import EZHeaderBackground from "../components/shared/EZHeaderBackground";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
@@ -16,10 +17,14 @@ const Tab = createBottomTabNavigator();
 
 const TabNavigator: React.FC<any> = () => {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const tabOffsetValue = useRef(new Animated.Value(0)).current;
   const user = useSelector((state: RootState) => state.user);
 
   const tabWidth = width / 4;
+  // Real bar height = compact content height + the device's bottom inset
+  // (gesture bar / nav buttons). Keeps the bar slim on phones without an inset.
+  const tabBarHeight = TAB_BAR_HEIGHT + insets.bottom;
   const isDark = user.theme === "dark";
   const activeColor = isDark ? COLORS.PURPLE[400] : COLORS.PURPLE[700];
   const inactiveColor = isDark ? COLORS.MUTED[300] : COLORS.MUTED[500];
@@ -54,9 +59,16 @@ const TabNavigator: React.FC<any> = () => {
 
           tabBarLabelStyle: {
             fontFamily: "SourceBold",
+            fontSize: 11,
+            marginBottom: 2,
+          },
+          tabBarIconStyle: {
+            marginTop: 2,
           },
           tabBarStyle: {
-            height: TAB_BAR_HEIGHT,
+            height: tabBarHeight,
+            paddingTop: 6,
+            paddingBottom: insets.bottom + 4,
             backgroundColor: isDark ? "#1f2937" : "#ffffff",
             borderTopColor: isDark ? "#374151" : "#e5e5e5",
           },
@@ -138,7 +150,7 @@ const TabNavigator: React.FC<any> = () => {
           backgroundColor: COLORS.PURPLE[700],
           position: "absolute",
           borderRadius: 50,
-          bottom: 78,
+          bottom: tabBarHeight - 2,
           transform: [{ translateX: tabOffsetValue }],
         }}
       />

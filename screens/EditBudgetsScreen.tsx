@@ -121,9 +121,9 @@ const EditBudgetScreen: React.FC<EditBudgetScreenProps> = ({ navigation }) => {
       <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
         style={{ backgroundColor: user.theme === "dark" ? "#111827" : "#ffffff" }}
-        contentContainerStyle={{ flexGrow: 1 }}>
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}>
 
-        <VStack mt={10} space={10} px={7}>
+        <VStack mt={10} space={6} px={7}>
           <TouchableOpacity
             style={{
               position: "absolute",

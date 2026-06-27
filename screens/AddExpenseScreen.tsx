@@ -240,7 +240,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                     width="100%"
                     style={{ paddingTop: 5, paddingBottom: 5 }}>
                     {(parents as Category[]).map((item: Category) => (
-                      <Box key={String(item.id)} width="50%" mb={4}>
+                      <Box key={String(item.id)} width="50%" mb={3} alignItems="center">
                         <CategoryItem
                           disabled={false}
                           selectedCategory={selectedParentName}
