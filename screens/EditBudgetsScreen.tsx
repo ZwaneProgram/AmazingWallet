@@ -97,7 +97,7 @@ const EditBudgetScreen: React.FC<EditBudgetScreenProps> = ({ navigation }) => {
   const budgetValues: Budget[] = [];
 
   const budgetCategories = categories!
-    .filter((category: Category) => !category.parentId)
+    .filter((category: Category) => !category.parentId && (category.type ?? "expense") === "expense")
     .map((category: Category) => {
     const budget = monthlyBudgets.find((item: Budget) => item.category === category.name);
 

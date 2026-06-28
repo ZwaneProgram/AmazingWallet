@@ -123,7 +123,8 @@ const SettingsScreen: React.FC<any> = () => {
   };
 
   const cycleStartDay = user.cycleStartDay || 1;
-  const cycleLabel = cycleStartDay <= 1 ? "1st (calendar month)" : ordinal(cycleStartDay);
+  // Compact value for the settings row (the "(calendar month)" hint lives in the picker).
+  const cycleLabel = ordinal(cycleStartDay);
 
   const applyCycleStartDay = async (day: number) => {
     setIsCycleOpen(false);
@@ -244,6 +245,14 @@ const SettingsScreen: React.FC<any> = () => {
           color: "#6d28d9",
           label: "Manage wallets",
           onPress: () => navigation.navigate("ManageWallets"),
+          rightElement: <FontAwesome name="angle-right" size={26} color={muted[900]} />,
+          disabled: false,
+        },
+        {
+          icon: <MaterialCommunityIcons name="calendar-refresh" size={18} color={COLORS.MUTED[50]} />,
+          color: "#0d9488",
+          label: "Monthly costs",
+          onPress: () => navigation.navigate("MonthlyCosts"),
           rightElement: <FontAwesome name="angle-right" size={26} color={muted[900]} />,
           disabled: false,
         },
@@ -385,11 +394,11 @@ const SettingsScreen: React.FC<any> = () => {
                       bg={user.theme === "dark" ? "muted.50" : "muted.200"}
                       borderRadius={8}
                       paddingX={"12px"}>
-                      <HStack space="12px" alignItems="center">
+                      <HStack space="12px" alignItems="center" flex={1} mr={2}>
                         <Circle bg={color} size="32px">
                           {icon}
                         </Circle>
-                        <Text fontSize={17} color="muted.900">
+                        <Text fontSize={17} color="muted.900" numberOfLines={1} flexShrink={1}>
                           {label}
                         </Text>
                       </HStack>

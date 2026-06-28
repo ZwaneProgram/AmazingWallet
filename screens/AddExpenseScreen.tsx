@@ -84,11 +84,12 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
             payDate: selectedDate,
           };
 
-          await IncomeService.addIncome(income);
+          const createdIncome = await IncomeService.addIncome(income);
 
           dispatch(
             addIncomeAction({
               ...income,
+              id: createdIncome.id,
               name: incomeCategory?.name,
               color: incomeCategory?.color,
             })
@@ -109,11 +110,12 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
           payDate: selectedDate,
         };
 
-        await ExpenseService.AddExpense(expense);
+        const createdExpense = await ExpenseService.AddExpense(expense);
 
         dispatch(
           addExpenseAction({
             ...expense,
+            id: createdExpense.id,
             name: category,
             color: currentCategory.color,
           })
@@ -151,17 +153,21 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
       return;
     }
     setType(nextType);
+    formik.setFieldValue("category", "");
     formik.setErrors({});
     formik.setTouched({});
   };
 
   const accentColor = isIncome ? COLORS.EMERALD[500] : accent[700];
 
-  // 2-level category picker: grid shows parents; a sub row appears for the selected parent.
-  const parents = (categories as Category[]).filter((c: Category) => !c.parentId);
+  // 2-level category picker, scoped to the current type (expense vs income).
+  const typeCategories = (categories as Category[]).filter(
+    (c: Category) => (c.type ?? "expense") === type
+  );
+  const parents = typeCategories.filter((c: Category) => !c.parentId);
   const childrenOf = (id?: number) =>
-    (categories as Category[]).filter((c: Category) => c.parentId === id);
-  const selectedCat = (categories as Category[]).find((c: Category) => c.name === values.category);
+    typeCategories.filter((c: Category) => c.parentId === id);
+  const selectedCat = typeCategories.find((c: Category) => c.name === values.category);
   const selectedParent = selectedCat
     ? selectedCat.parentId
       ? (categories as Category[]).find((c: Category) => c.id === selectedCat.parentId)

@@ -41,9 +41,10 @@ import {
   setIncomesAction,
   setWalletsAction,
   setWalletGroupsAction,
-  todayTotalSelector,
+  setMonthlyCostsAction,
   walletsSelector,
   walletGroupsSelector,
+  monthlyCostsSelector,
 } from "../redux/expensesReducers";
 import { LinearGradient } from "expo-linear-gradient";
 import moment from "moment";
@@ -55,6 +56,9 @@ import GroupedTransactionList from "../components/GroupedTransactionList";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WalletService } from "../api/services/WalletService";
 import { WalletGroupService } from "../api/services/WalletGroupService";
+import { MonthlyCostService } from "../api/services/MonthlyCostService";
+import { MonthlyCost } from "../interfaces/MonthlyCost";
+import { isDue, payMonthlyCost, snoozeMonthlyCost } from "../utils/monthlyCosts";
 import { useAccent } from "../hooks/useAccent";
 import { getPeriodRange, formatPeriodLabel } from "../utils/period";
 
@@ -74,13 +78,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const { expenses } = useSelector((state: RootState) => state.expenses);
   const incomes = useSelector((state: RootState) => state.expenses.incomes);
   const categories = useSelector(categoriesSelector);
-  const todayTotal = useSelector(todayTotalSelector);
   const monthTotal = useSelector(monthTotalSelector);
   const monthIncomeTotal = useSelector(monthIncomeTotalSelector);
+  // Hero number: this period's net (income - expenses). Green when up, red when down.
+  const monthNet = (monthIncomeTotal || 0) - (monthTotal || 0);
   const monthlyBudgets = useSelector(monthlyBudgetsSelector);
   const rollup = useSelector(categoryRollupSelector);
   const wallets = useSelector(walletsSelector);
   const walletGroups = useSelector(walletGroupsSelector);
+  const monthlyCosts = useSelector(monthlyCostsSelector);
 
   const user: any = useSelector((state: RootState) => state.user);
   const accent = useAccent();
@@ -127,10 +133,13 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                     fontSize={11}
                     letterSpacing={3}
                     opacity={0.65}>
-                    TODAY
+                    THIS MONTH
                   </Text>
-                  <Text fontFamily="SourceBold" color="white" fontSize={28}>
-                    {user.symbol} {todayTotal.toFixed(2)}
+                  <Text
+                    fontFamily="SourceBold"
+                    fontSize={28}
+                    style={{ color: monthNet >= 0 ? COLORS.EMERALD[400] : COLORS.DANGER[400] }}>
+                    {monthNet >= 0 ? "+" : "-"} {user.symbol} {Math.abs(monthNet).toFixed(2)}
                   </Text>
                 </VStack>
               )}
@@ -179,7 +188,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         </View>
       ),
     });
-  }, [navigation, todayTotal, loading, user.month, user.year, user.activeWalletId, wallets, insets.top, user.theme, accent]);
+  }, [navigation, monthNet, loading, user.month, user.year, user.activeWalletId, wallets, insets.top, user.theme, accent]);
 
   useEffect(() => {
     if (!expenses.length) {
@@ -266,12 +275,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const getGeneralInfo = async () => {
     setLoading(true);
 
-    const [allWallets, groups] = await Promise.all([
+    const [allWallets, groups, costs] = await Promise.all([
       WalletService.getUserWallets(user.id),
       WalletGroupService.getUserGroups(user.id),
+      MonthlyCostService.getUserMonthlyCosts(user.id),
     ]);
     dispatch(setWalletsAction(allWallets));
     dispatch(setWalletGroupsAction(groups));
+    dispatch(setMonthlyCostsAction(costs));
     let walletId = user.activeWalletId;
     if (!walletId || !allWallets.some((w) => w.id === walletId)) {
       const def = allWallets.find((w) => w.isDefault) ?? allWallets[0];
@@ -315,6 +326,38 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     navigation.navigate("EditBudgets");
   };
 
+  // Monthly costs whose due day has arrived this month and aren't paid/snoozed.
+  const dueCosts = (monthlyCosts as MonthlyCost[]).filter((c) => isDue(c));
+  const costDayLabel = (n: number) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
+  const refreshMonthlyCosts = async () => {
+    const data = await MonthlyCostService.getUserMonthlyCosts(user.id);
+    dispatch(setMonthlyCostsAction(data));
+  };
+
+  const handlePayDue = async (cost: MonthlyCost) => {
+    try {
+      await payMonthlyCost(cost, categories, dispatch, user.activeWalletId);
+      await refreshMonthlyCosts();
+      loadWalletBalances();
+    } catch (e) {
+      console.log("pay due cost failed:", e);
+    }
+  };
+
+  const handleSnoozeDue = async (cost: MonthlyCost) => {
+    try {
+      await snoozeMonthlyCost(cost);
+      await refreshMonthlyCosts();
+    } catch (e) {
+      console.log("snooze due cost failed:", e);
+    }
+  };
+
   const applyPeriod = async (month: string, year: number, walletId: number = user.activeWalletId) => {
     const parsedMonth = moment(month, "MMMM");
     if (!parsedMonth.isValid()) {
@@ -345,6 +388,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const overallPct = overallBudget > 0 ? Math.min((monthTotal / overallBudget) * 100, 100) : 0;
   const overBudget = overallBudget > 0 && monthTotal > overallBudget;
 
+  // Budget-usage colour ramp: calm green -> deeper green -> amber -> red as you
+  // approach (and pass) the limit. Drives both the bar and the spent amount.
+  const budgetColor =
+    overallPct >= 85
+      ? COLORS.DANGER[500]
+      : overallPct >= 80
+      ? COLORS.YELLOW[400]
+      : overallPct >= 50
+      ? COLORS.EMERALD[700]
+      : COLORS.EMERALD[500];
+
   return (
     <View flex={1}>
       <StatusBar style="light" />
@@ -353,26 +407,24 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
           <VStack space={8}>
             {overallBudget > 0 && (
               <Box bg="muted.50" borderRadius={16} shadow={2} px={5} py={4}>
-                <HStack justifyContent="space-between" alignItems="center" mb={2}>
+                <VStack mb={2} space={0.5}>
                   <Text fontFamily="SourceBold" fontSize={18}>
                     Overall budget
                   </Text>
-                  <Text
-                    fontFamily="SourceBold"
-                    fontSize={15}
-                    color={overBudget ? "danger.500" : "muted.500"}>
-                    {user.symbol} {monthTotal.toFixed(2)} / {user.symbol}{" "}
-                    {Number(overallBudget).toFixed(2)}
+                  <Text fontFamily="SourceBold" fontSize={15} color="muted.500">
+                    <Text style={{ color: budgetColor }}>
+                      {user.symbol} {monthTotal.toFixed(2)}
+                    </Text>
+                    {" / "}
+                    {user.symbol} {Number(overallBudget).toFixed(2)}
                   </Text>
-                </HStack>
+                </VStack>
                 <Box bg="muted.200" height="12px" borderRadius={20} overflow="hidden">
                   <Box
                     height="12px"
                     borderRadius={20}
                     width={`${overallPct}%`}
-                    style={{
-                      backgroundColor: overBudget ? COLORS.DANGER[500] : COLORS.EMERALD[500],
-                    }}
+                    style={{ backgroundColor: budgetColor }}
                   />
                 </Box>
                 {overBudget && (
@@ -425,43 +477,82 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 </Text>
               </HStack>
             </Box>
-            <VStack space={3}>
-              <Text fontFamily="SourceBold" fontSize={25}>
-                Monthly costs
-              </Text>
-
-              <Box
-                alignSelf="center"
-                bg="muted.50"
-                width="100%"
-                shadow={2}
-                borderRadius={10}
-                px={5}
-                py={3}>
-                <Text fontFamily="SourceSansPro" color="muted.400" fontSize={20}>
-                  {cycleStartDay > 1 ? formatPeriodLabel(user.month, selectedYear, cycleStartDay) : user.month}
-                </Text>
-                {loading ? (
-                  <Skeleton mt={5} mb={3} h="5" width={20} rounded="full" startColor="indigo.300" />
-                ) : (
-                  <Text fontFamily="SourceBold" fontSize={35}>
-                    {user.symbol} {monthTotal.toFixed(2)}
+            {/* Monthly costs due — only shows when something needs paying */}
+            {dueCosts.length > 0 && (
+              <VStack space={3}>
+                <HStack justifyContent="space-between" alignItems="center">
+                  <Text fontFamily="SourceBold" fontSize={25}>
+                    Monthly costs
                   </Text>
-                )}
-                {isFocused && (
-                  <Fab
-                    onPress={openAddExpenseModal}
-                    width="56px"
-                    height="56px"
-                    right={"20px"}
-                    _pressed={{ bg: "purple.600" }}
-                    bg="purple.700"
-                    bottom={`${TAB_BAR_HEIGHT + insets.bottom + 20}px`}
-                    icon={<Icon color="white" size={26} as={<AntDesign name="plus" />} />}
-                  />
-                )}
-              </Box>
-            </VStack>
+                  <Pressable
+                    onPress={() => navigation.navigate("MonthlyCosts")}
+                    _pressed={{ opacity: 0.5 }}>
+                    <Text fontFamily="SourceBold" color={accent[700]} fontSize={15}>
+                      Manage
+                    </Text>
+                  </Pressable>
+                </HStack>
+
+                {dueCosts.map((c) => {
+                  const isIncome = c.type === "income";
+                  const tint = isIncome ? COLORS.EMERALD[500] : COLORS.DANGER[500];
+                  const wName = (wallets as any[]).find((w) => w.id === c.walletId)?.name ?? "";
+                  return (
+                    <Box key={c.id} bg="muted.50" borderRadius={14} shadow={1} px={4} py={3}>
+                      <HStack justifyContent="space-between" alignItems="center">
+                        <VStack flex={1} pr={2}>
+                          <Text fontFamily="SourceBold" fontSize={16} numberOfLines={1}>
+                            {c.name}
+                          </Text>
+                          <Text fontFamily="SourceSansPro" fontSize={12} color="muted.400" numberOfLines={1}>
+                            Due the {costDayLabel(c.dayOfMonth)}
+                            {wName ? ` · ${wName}` : ""}
+                          </Text>
+                        </VStack>
+                        <Text fontFamily="SourceBold" fontSize={16} style={{ color: tint }}>
+                          {isIncome ? "+" : "-"} {user.symbol} {c.amount.toFixed(2)}
+                        </Text>
+                      </HStack>
+                      <HStack space={2} mt={3}>
+                        <Pressable flex={1} onPress={() => handlePayDue(c)} _pressed={{ opacity: 0.7 }}>
+                          <Box bg={accent[700]} borderRadius={10} py={2.5} alignItems="center">
+                            <Text fontFamily="SourceBold" fontSize={14} color="white">
+                              {isIncome ? "Received it" : "Paid it"}
+                            </Text>
+                          </Box>
+                        </Pressable>
+                        <Pressable onPress={() => handleSnoozeDue(c)} _pressed={{ opacity: 0.7 }}>
+                          <Box
+                            borderWidth={1.5}
+                            borderColor="muted.300"
+                            borderRadius={10}
+                            py={2.5}
+                            px={4}
+                            alignItems="center">
+                            <Text fontFamily="SourceBold" fontSize={14} color="muted.500">
+                              Tomorrow
+                            </Text>
+                          </Box>
+                        </Pressable>
+                      </HStack>
+                    </Box>
+                  );
+                })}
+              </VStack>
+            )}
+
+            {isFocused && (
+              <Fab
+                onPress={openAddExpenseModal}
+                width="56px"
+                height="56px"
+                right={"20px"}
+                _pressed={{ bg: "purple.600" }}
+                bg="purple.700"
+                bottom={`${TAB_BAR_HEIGHT + insets.bottom + 20}px`}
+                icon={<Icon color="white" size={26} as={<AntDesign name="plus" />} />}
+              />
+            )}
             <VStack space={3}>
               <HStack justifyContent="space-between" alignItems="center">
                 <Text fontFamily="SourceBold" fontSize={25}>

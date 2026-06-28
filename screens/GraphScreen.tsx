@@ -48,6 +48,7 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
   // touching Home's selection.
   const [graphMonth, setGraphMonth] = useState<string>(user.month || moment().format("MMMM"));
   const [graphYear, setGraphYear] = useState<number>(user.year || moment().year());
+  const [graphMode, setGraphMode] = useState<"month" | "all">("month");
   const [pickerOpen, setPickerOpen] = useState<boolean>(false);
   const [graphExpenses, setGraphExpenses] = useState<any[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
@@ -61,13 +62,20 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
   }, [navigation]);
 
   const loadExpenses = async () => {
-    const parsedMonth = moment(graphMonth, "MMMM");
-    if (!parsedMonth.isValid()) return;
-    const { start: startOfMonth, end: endOfMonth } = getPeriodRange(
-      graphMonth,
-      graphYear,
-      user.cycleStartDay || 1
-    );
+    let startOfMonth: string;
+    let endOfMonth: string;
+    if (graphMode === "all") {
+      startOfMonth = moment().year(graphYear).startOf("year").format("YYYY-MM-DD");
+      endOfMonth = moment().year(graphYear).endOf("year").format("YYYY-MM-DD");
+    } else {
+      const parsedMonth = moment(graphMonth, "MMMM");
+      if (!parsedMonth.isValid()) return;
+      ({ start: startOfMonth, end: endOfMonth } = getPeriodRange(
+        graphMonth,
+        graphYear,
+        user.cycleStartDay || 1
+      ));
+    }
 
     setLoading(true);
     const data = await ExpenseService.getMonthExpenses(
@@ -86,9 +94,14 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
     if (isFocused) {
       loadExpenses();
     }
-  }, [graphMonth, graphYear, user.activeWalletId, isFocused]);
+  }, [graphMonth, graphYear, graphMode, user.activeWalletId, isFocused]);
 
-  const shiftMonth = (delta: number) => {
+  // Arrows page months in month-mode, years in all-mode.
+  const shiftPeriod = (delta: number) => {
+    if (graphMode === "all") {
+      setGraphYear((y) => y + delta);
+      return;
+    }
     const next = moment().year(graphYear).month(moment(graphMonth, "MMMM").month()).add(delta, "month");
     setGraphMonth(next.format("MMMM"));
     setGraphYear(next.year());
@@ -125,7 +138,7 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
       {/* Period picker — independent of Home */}
       <HStack w="90%" alignItems="center" justifyContent="space-between" px={1}>
         <TouchableOpacity
-          onPress={() => shiftMonth(-1)}
+          onPress={() => shiftPeriod(-1)}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <AntDesign name="left" size={22} color={accent[700]} />
         </TouchableOpacity>
@@ -143,7 +156,7 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
               color={user.theme === "dark" ? COLORS.MUTED[300] : COLORS.MUTED[500]}
             />
             <Text fontFamily="SourceBold" fontSize={16}>
-              {graphMonth} {graphYear}
+              {graphMode === "all" ? `All ${graphYear}` : `${graphMonth} ${graphYear}`}
             </Text>
             <AntDesign
               name="caret-down"
@@ -153,7 +166,7 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
           </HStack>
         </Pressable>
         <TouchableOpacity
-          onPress={() => shiftMonth(1)}
+          onPress={() => shiftPeriod(1)}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
           <AntDesign name="right" size={22} color={accent[700]} />
         </TouchableOpacity>
@@ -327,8 +340,14 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
         onClose={() => setPickerOpen(false)}
         month={graphMonth}
         year={graphYear}
+        allActive={graphMode === "all"}
         onSelect={(month, year) => {
+          setGraphMode("month");
           setGraphMonth(month);
+          setGraphYear(year);
+        }}
+        onSelectAll={(year) => {
+          setGraphMode("all");
           setGraphYear(year);
         }}
       />

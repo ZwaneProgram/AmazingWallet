@@ -40,6 +40,7 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
   const accent = useAccent();
 
   const [loading, setLoading] = useState<boolean>(true);
+  const [activeType, setActiveType] = useState<"expense" | "income">("expense");
 
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [mode, setMode] = useState<Mode>("add");
@@ -65,7 +66,9 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
     load();
   }, []);
 
-  const parents = categories.filter((c: Category) => !c.parentId);
+  const parents = categories.filter(
+    (c: Category) => !c.parentId && (c.type ?? "expense") === activeType
+  );
   const childrenOf = (id?: number) => categories.filter((c: Category) => c.parentId === id);
 
   const openAdd = () => {
@@ -141,6 +144,7 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
           color,
           icon,
           parentId,
+          type: activeType,
         });
       }
       await refresh();
@@ -236,9 +240,29 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
           </TouchableOpacity>
         </HStack>
 
+        {/* Expense / Income tabs */}
+        <HStack bg="muted.50" borderRadius={12} p={1} mb={4}>
+          {(["expense", "income"] as const).map((t) => {
+            const active = activeType === t;
+            return (
+              <Pressable key={t} flex={1} onPress={() => setActiveType(t)}>
+                <View
+                  py={2}
+                  borderRadius={10}
+                  alignItems="center"
+                  bg={active ? (t === "income" ? "emerald.500" : "purple.700") : "transparent"}>
+                  <Text fontFamily="SourceBold" fontSize={15} color={active ? "white" : "muted.500"}>
+                    {t === "income" ? "Income" : "Expense"}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </HStack>
+
         <Pressable onPress={openAdd} _pressed={{ opacity: 0.7 }} mb={4}>
           <HStack
-            bg="purple.700"
+            bg={activeType === "income" ? "emerald.500" : "purple.700"}
             borderRadius={12}
             height="48px"
             alignItems="center"
@@ -246,7 +270,7 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
             space={2}>
             <Feather name="plus" size={20} color="#fff" />
             <Text fontFamily="SourceBold" fontSize={16} color="white">
-              Add category
+              Add {activeType} category
             </Text>
           </HStack>
         </Pressable>

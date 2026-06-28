@@ -2,7 +2,7 @@ import moment from "moment";
 import { supabase } from "../supabase";
 import { CATEGORIES } from "../../constants/Tables";
 import { GET_TOP_SPENDINGS } from "../../constants/PostgresFunctions";
-import { DEFAULT_CATEGORIES } from "../../constants/DefaultCategories";
+import { DEFAULT_EXPENSE_CATEGORIES, DEFAULT_INCOME_CATEGORIES } from "../../constants/DefaultCategories";
 
 const getAllCategories = async () => {
   try {
@@ -22,6 +22,7 @@ const mapCategory = (row: any) => ({
   color: row.color,
   icon: row.icon,
   parentId: row.parent_id ?? null,
+  type: row.type === "income" ? "income" : "expense",
 });
 
 const getUserCategories = async (userId: number) => {
@@ -50,6 +51,7 @@ const createCategory = async (category: {
   color: string;
   icon: string;
   parentId?: number | null;
+  type?: "expense" | "income";
 }) => {
   const { data, error } = await supabase
     .from(CATEGORIES)
@@ -59,6 +61,7 @@ const createCategory = async (category: {
       color: category.color,
       icon: category.icon,
       parent_id: category.parentId ?? null,
+      type: category.type ?? "expense",
     })
     .select()
     .single();
@@ -98,12 +101,16 @@ const deleteCategory = async (id: number) => {
 };
 
 const seedDefaultCategories = async (userId: number) => {
-  const rows = DEFAULT_CATEGORIES.map((c) => ({
+  const rows = [
+    ...DEFAULT_EXPENSE_CATEGORIES.map((c) => ({ ...c, type: "expense" })),
+    ...DEFAULT_INCOME_CATEGORIES.map((c) => ({ ...c, type: "income" })),
+  ].map((c) => ({
     user_id: userId,
     name: c.name,
     color: c.color,
     icon: c.icon,
     parent_id: null,
+    type: c.type,
   }));
 
   const { data, error } = await supabase.from(CATEGORIES).insert(rows).select();

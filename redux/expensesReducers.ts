@@ -5,6 +5,7 @@ import { Category } from "../interfaces/Category";
 import { Expense } from "../interfaces/Expense";
 import { Income } from "../interfaces/Income";
 import { Wallet, WalletGroup } from "../interfaces/Wallet";
+import { MonthlyCost } from "../interfaces/MonthlyCost";
 import { computeCategoryRollup } from "../utils/categoryRollup";
 import { getPeriodRange } from "../utils/period";
 import { RootState } from "./store";
@@ -20,6 +21,7 @@ interface initialStateProps {
   budgets: Budget[];
   wallets: Wallet[];
   walletGroups: WalletGroup[];
+  monthlyCosts: MonthlyCost[];
 }
 
 const initialState: initialStateProps = {
@@ -31,6 +33,7 @@ const initialState: initialStateProps = {
   budgets: [],
   wallets: [],
   walletGroups: [],
+  monthlyCosts: [],
 };
 
 const expensesReducer = createSlice({
@@ -81,6 +84,9 @@ const expensesReducer = createSlice({
     setWalletGroups: (state, action) => {
       state.walletGroups = action.payload;
     },
+    setMonthlyCosts: (state, action) => {
+      state.monthlyCosts = action.payload;
+    },
     editBudgets: (state, action) => {
       let budgets = action.payload;
 
@@ -128,6 +134,7 @@ export const setBudgetsAction = expensesReducer.actions.setBudgets;
 export const editBudgetsAction = expensesReducer.actions.editBudgets;
 export const setWalletsAction = expensesReducer.actions.setWallets;
 export const setWalletGroupsAction = expensesReducer.actions.setWalletGroups;
+export const setMonthlyCostsAction = expensesReducer.actions.setMonthlyCosts;
 
 //selectors
 const generalState = (state: RootState) => state.expenses;
@@ -204,6 +211,11 @@ export const walletsSelector = createSelector([generalState], (expenses: any) =>
 export const walletGroupsSelector = createSelector(
   [generalState],
   (expenses: any) => expenses.walletGroups
+);
+
+export const monthlyCostsSelector = createSelector(
+  [generalState],
+  (expenses: any) => expenses.monthlyCosts
 );
 
 export const monthIncomeTotalSelector = createSelector([globalState], (globalState: any) => {

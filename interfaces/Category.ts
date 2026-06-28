@@ -7,4 +7,5 @@ export interface Category {
   icon?: any;
   budget?: number;
   parentId?: number | null;
+  type?: "expense" | "income";
 }

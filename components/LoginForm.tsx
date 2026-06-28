@@ -12,9 +12,10 @@ import {
   setYearAction,
 } from "../redux/userReducer";
 import { getCurrentPeriod } from "../utils/period";
-import { setWalletsAction, setWalletGroupsAction } from "../redux/expensesReducers";
+import { setWalletsAction, setWalletGroupsAction, setMonthlyCostsAction } from "../redux/expensesReducers";
 import { WalletService } from "../api/services/WalletService";
 import { WalletGroupService } from "../api/services/WalletGroupService";
+import { MonthlyCostService } from "../api/services/MonthlyCostService";
 import { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { UserService } from "../api/services/UserService";
 import { Provider } from "../interfaces/Provider";
@@ -60,12 +61,14 @@ const LoginForm: React.FC<LoginFormProps> = ({ navigation }) => {
         dispatch(setMonthAction(month));
         dispatch(setYearAction(year));
 
-        const [userWallets, userGroups] = await Promise.all([
+        const [userWallets, userGroups, userCosts] = await Promise.all([
           WalletService.getUserWallets(id),
           WalletGroupService.getUserGroups(id),
+          MonthlyCostService.getUserMonthlyCosts(id),
         ]);
         dispatch(setWalletsAction(userWallets));
         dispatch(setWalletGroupsAction(userGroups));
+        dispatch(setMonthlyCostsAction(userCosts));
         const defaultWallet = userWallets.find((w) => w.isDefault) ?? userWallets[0];
         if (defaultWallet?.id) {
           dispatch(setActiveWalletAction(defaultWallet.id));

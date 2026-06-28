@@ -4,24 +4,30 @@ import { Income } from "../../interfaces/Income";
 import { getCurrentDate } from "../../utils/getCurrentDate";
 import { supabase } from "../supabase";
 
-const addIncome = async (income: Income) => {
+// Returns the inserted row's id + date (see AddExpense) so Redux holds the real id.
+const addIncome = async (income: Income): Promise<{ id: number; payDate: string }> => {
   const { amount, description, userId, walletId, categoryId, payDate } = income;
 
   // Use the caller-supplied date when back-dating; otherwise today.
   const date = payDate || getCurrentDate();
 
-  const { error } = await supabase.from(INCOMES).insert({
-    user_id: userId,
-    amount,
-    description,
-    date,
-    wallet_id: walletId,
-    category_id: categoryId ?? null,
-  });
+  const { data, error } = await supabase
+    .from(INCOMES)
+    .insert({
+      user_id: userId,
+      amount,
+      description,
+      date,
+      wallet_id: walletId,
+      category_id: categoryId ?? null,
+    })
+    .select("id, date")
+    .single();
 
   if (error) {
     throw error;
   }
+  return { id: data.id, payDate: data.date };
 };
 
 const getMonthIncomes = async (userId: number, startOfMonth: string, endOfMonth: string, walletId: number) => {
