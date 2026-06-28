@@ -5,15 +5,16 @@ import { getCurrentDate } from "../../utils/getCurrentDate";
 import { supabase } from "../supabase";
 
 const addIncome = async (income: Income) => {
-  const { amount, description, userId, walletId, categoryId } = income;
+  const { amount, description, userId, walletId, categoryId, payDate } = income;
 
-  const currentDate = getCurrentDate();
+  // Use the caller-supplied date when back-dating; otherwise today.
+  const date = payDate || getCurrentDate();
 
   const { error } = await supabase.from(INCOMES).insert({
     user_id: userId,
     amount,
     description,
-    date: currentDate,
+    date,
     wallet_id: walletId,
     category_id: categoryId ?? null,
   });

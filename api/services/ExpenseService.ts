@@ -8,16 +8,17 @@ import { supabase } from "../supabase";
 // const endMonth = moment().endOf("month").format("YYYY-MM-DD");
 
 const AddExpense = async (expense: Expense) => {
-  const { amount, categoryId, description, userId, walletId } = expense;
+  const { amount, categoryId, description, userId, walletId, payDate } = expense;
 
-  const currentDate = getCurrentDate();
+  // Use the caller-supplied date when back-dating; otherwise today.
+  const date = payDate || getCurrentDate();
 
   await supabase.from("expenses").insert({
     user_id: userId,
     category_id: categoryId,
     amount,
     description,
-    date: currentDate,
+    date,
     wallet_id: walletId,
   });
 

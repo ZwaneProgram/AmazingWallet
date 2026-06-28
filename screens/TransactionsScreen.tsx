@@ -16,9 +16,12 @@ import { Alert, Platform, TextInput, TouchableOpacity } from "react-native";
 import { AntDesign, Feather, MaterialCommunityIcons } from "@expo/vector-icons";
 import { NavigationProp, ParamListBase } from "@react-navigation/native";
 import moment from "moment";
+import { getPeriodRange, formatPeriodLabel } from "../utils/period";
+import CalendarModal from "../components/CalendarModal";
 import EZHeaderTitle from "../components/shared/EzHeaderTitle";
 import MonthYearPickerModal from "../components/MonthYearPickerModal";
 import { useDispatch, useSelector } from "react-redux";
+import { setActiveWalletAction } from "../redux/userReducer";
 import { StatusBar } from "expo-status-bar";
 import { RootState } from "../redux/store";
 import COLORS from "../colors";
@@ -79,13 +82,19 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
   const [loading, setLoading] = useState<boolean>(true);
   const [transactions, setTransactions] = useState<Txn[]>([]);
   const [filter, setFilter] = useState<Filter>("all");
-  const [walletFilter, setWalletFilter] = useState<number | "all">("all");
+  // Defaults to the wallet you're currently on; re-syncs when you switch wallets.
+  // Picking a different wallet (or "All") here stays put until the active wallet changes.
+  const [walletFilter, setWalletFilter] = useState<number | "all">(user.activeWalletId || "all");
   const [walletSheetOpen, setWalletSheetOpen] = useState<boolean>(false);
   const [search, setSearch] = useState<string>("");
-  const [histMode, setHistMode] = useState<"month" | "all">("month");
+  const [histMode, setHistMode] = useState<"month" | "all" | "range">("month");
   const [histMonth, setHistMonth] = useState<string>(moment().format("MMMM"));
   const [histYear, setHistYear] = useState<number>(moment().year());
   const [monthPickerOpen, setMonthPickerOpen] = useState<boolean>(false);
+  // Custom date-range filter (6.1b)
+  const [rangeStart, setRangeStart] = useState<string>(moment().startOf("month").format("YYYY-MM-DD"));
+  const [rangeEnd, setRangeEnd] = useState<string>(moment().format("YYYY-MM-DD"));
+  const [rangeOpen, setRangeOpen] = useState<boolean>(false);
 
   // edit modal state
   const [editing, setEditing] = useState<Txn | null>(null);
@@ -167,6 +176,15 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
     loadTransactions();
     ensureCategories();
   }, [user.activeWalletId, wallets]);
+
+  // Follow the active wallet: switching wallet on Home makes History show that
+  // wallet too. Manual changes within History persist until the active wallet
+  // changes again.
+  useEffect(() => {
+    if (user.activeWalletId) {
+      setWalletFilter(user.activeWalletId);
+    }
+  }, [user.activeWalletId]);
 
   const openEditor = (txn: Txn) => {
     // Transfers aren't edited inline — tapping one offers to delete (which
@@ -300,16 +318,27 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
     }
   };
 
-  const monthNumber = moment(histMonth, "MMMM").month();
+  const monthRange = getPeriodRange(histMonth, histYear, user.cycleStartDay || 1);
   const periodStart =
     histMode === "all"
       ? moment().year(histYear).startOf("year").format("YYYY-MM-DD")
-      : moment().year(histYear).month(monthNumber).startOf("month").format("YYYY-MM-DD");
+      : histMode === "range"
+      ? rangeStart
+      : monthRange.start;
   const periodEnd =
     histMode === "all"
       ? moment().year(histYear).endOf("year").format("YYYY-MM-DD")
-      : moment().year(histYear).month(monthNumber).endOf("month").format("YYYY-MM-DD");
-  const periodLabel = histMode === "all" ? `All ${histYear}` : `${histMonth} ${histYear}`;
+      : histMode === "range"
+      ? rangeEnd
+      : monthRange.end;
+  const periodLabel =
+    histMode === "all"
+      ? `All ${histYear}`
+      : histMode === "range"
+      ? `${moment(rangeStart).format("MMM D")} – ${moment(rangeEnd).format("MMM D, YYYY")}`
+      : (user.cycleStartDay || 1) > 1
+      ? formatPeriodLabel(histMonth, histYear, user.cycleStartDay || 1)
+      : `${histMonth} ${histYear}`;
   const query = search.trim().toLowerCase();
 
   // Arrows page months in month-mode, and years in all-mode.
@@ -318,7 +347,7 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
       setHistYear((y) => y + delta);
       return;
     }
-    const next = moment().year(histYear).month(monthNumber).add(delta, "month");
+    const next = moment().year(histYear).month(moment(histMonth, "MMMM").month()).add(delta, "month");
     setHistMonth(next.format("MMMM"));
     setHistYear(next.year());
   };
@@ -349,9 +378,14 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
         {/* Period picker — page through months (or years when viewing "All") */}
         <HStack alignItems="center" justifyContent="space-between" mb={3}>
           <TouchableOpacity
+            disabled={histMode === "range"}
             onPress={() => shiftPeriod(-1)}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <AntDesign name="left" size={22} color={accent[700]} />
+            <AntDesign
+              name="left"
+              size={22}
+              color={histMode === "range" ? COLORS.MUTED[300] : accent[700]}
+            />
           </TouchableOpacity>
           <Pressable onPress={() => setMonthPickerOpen(true)} _pressed={{ opacity: 0.6 }}>
             <HStack
@@ -377,11 +411,43 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
             </HStack>
           </Pressable>
           <TouchableOpacity
+            disabled={histMode === "range"}
             onPress={() => shiftPeriod(1)}
             hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-            <AntDesign name="right" size={22} color={accent[700]} />
+            <AntDesign
+              name="right"
+              size={22}
+              color={histMode === "range" ? COLORS.MUTED[300] : accent[700]}
+            />
           </TouchableOpacity>
         </HStack>
+
+        {/* Custom date-range toggle (6.1b) */}
+        <Pressable
+          alignSelf="center"
+          mb={3}
+          onPress={() => {
+            if (histMode === "range") {
+              // back to the current monthly view
+              setHistMode("month");
+              setHistMonth(moment().format("MMMM"));
+              setHistYear(moment().year());
+            } else {
+              setRangeOpen(true);
+            }
+          }}
+          _pressed={{ opacity: 0.6 }}>
+          <HStack alignItems="center" space={1}>
+            <Feather
+              name={histMode === "range" ? "x" : "sliders"}
+              size={13}
+              color={accent[700]}
+            />
+            <Text fontFamily="SourceBold" fontSize={13} color={accent[700]}>
+              {histMode === "range" ? "Clear custom range" : "Custom range…"}
+            </Text>
+          </HStack>
+        </Pressable>
 
         {/* Search notes */}
         <HStack
@@ -509,6 +575,21 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
         }}
       />
 
+      {/* Custom date-range picker (6.1b) */}
+      <CalendarModal
+        isOpen={rangeOpen}
+        onClose={() => setRangeOpen(false)}
+        mode="range"
+        startValue={rangeStart}
+        endValue={rangeEnd}
+        title="Filter by date range"
+        onSelectRange={(start, end) => {
+          setRangeStart(start);
+          setRangeEnd(end);
+          setHistMode("range");
+        }}
+      />
+
       {/* Wallet filter sheet */}
       <Actionsheet isOpen={walletSheetOpen} onClose={() => setWalletSheetOpen(false)}>
         <Actionsheet.Content bg={sheetBg} style={{ backgroundColor: sheetBg, paddingBottom: 8 }}>
@@ -531,6 +612,12 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
                 key={String(opt.key)}
                 activeOpacity={0.6}
                 onPress={() => {
+                  // Picking a specific wallet switches the app-wide active wallet
+                  // (mirrors Home). "All wallets" is a History-only view, so it
+                  // doesn't change the active wallet.
+                  if (opt.key !== "all") {
+                    dispatch(setActiveWalletAction(opt.key));
+                  }
                   setWalletFilter(opt.key);
                   setWalletSheetOpen(false);
                 }}

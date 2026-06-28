@@ -40,8 +40,10 @@ import {
   setExpensesAction,
   setIncomesAction,
   setWalletsAction,
+  setWalletGroupsAction,
   todayTotalSelector,
   walletsSelector,
+  walletGroupsSelector,
 } from "../redux/expensesReducers";
 import { LinearGradient } from "expo-linear-gradient";
 import moment from "moment";
@@ -52,7 +54,9 @@ import TransferModal from "../components/TransferModal";
 import GroupedTransactionList from "../components/GroupedTransactionList";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WalletService } from "../api/services/WalletService";
+import { WalletGroupService } from "../api/services/WalletGroupService";
 import { useAccent } from "../hooks/useAccent";
+import { getPeriodRange, formatPeriodLabel } from "../utils/period";
 
 interface HomeScreenProps {
   navigation: NavigationProp<ParamListBase>;
@@ -76,6 +80,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const monthlyBudgets = useSelector(monthlyBudgetsSelector);
   const rollup = useSelector(categoryRollupSelector);
   const wallets = useSelector(walletsSelector);
+  const walletGroups = useSelector(walletGroupsSelector);
 
   const user: any = useSelector((state: RootState) => state.user);
   const accent = useAccent();
@@ -144,7 +149,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                     }}>
                     <Feather name="calendar" size={13} color={COLORS.MUTED[50]} />
                     <Text fontFamily="SourceBold" color="white" fontSize={15}>
-                      {user.month} {selectedYear}
+                      {periodLabel}
                     </Text>
                     <AntDesign name="caret-down" size={10} color={COLORS.MUTED[50]} />
                   </HStack>
@@ -214,7 +219,15 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     }
   }, [isFocused, walletSheetOpen, user.activeWalletId]);
 
-  const totalWalletBalance = Object.values(walletBalances).reduce((a, b) => a + b, 0);
+  // Wallets flagged "exclude from total" are skipped from the combined balance
+  // shown in the wallet picker (but still show their own numbers when viewed).
+  const excludedWalletIds = new Set(
+    (wallets as any[]).filter((w: any) => w.excludeFromTotal).map((w: any) => w.id)
+  );
+  const totalWalletBalance = Object.entries(walletBalances).reduce(
+    (sum, [id, bal]) => (excludedWalletIds.has(Number(id)) ? sum : sum + bal),
+    0
+  );
   const activeWalletBalance = walletBalances[user.activeWalletId] ?? 0;
 
   const getAllCategories = async () => {
@@ -228,18 +241,17 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   };
 
   const selectedYear = user.year || moment().year();
-  const parsedMonth = moment(user.month, "MMMM");
-  const monthNumber = parsedMonth.month();
-  const startOfMonth = moment()
-    .year(selectedYear)
-    .month(monthNumber)
-    .startOf("month")
-    .format("YYYY-MM-DD");
-  const endOfMonth = moment()
-    .year(selectedYear)
-    .month(monthNumber)
-    .endOf("month")
-    .format("YYYY-MM-DD");
+  const cycleStartDay = user.cycleStartDay || 1;
+  const { start: startOfMonth, end: endOfMonth } = getPeriodRange(
+    user.month,
+    selectedYear,
+    cycleStartDay
+  );
+  // Calendar cycle -> "June 2026"; shifted cycle -> the explicit span.
+  const periodLabel =
+    cycleStartDay > 1
+      ? formatPeriodLabel(user.month, selectedYear, cycleStartDay)
+      : `${user.month} ${selectedYear}`;
 
   const getMonthlyExpenses = async (userId: number, startOfMonth: string, endOfMonth: string, walletId: number) => {
     const expenses = await ExpenseService.getMonthExpenses(userId, startOfMonth, endOfMonth, walletId);
@@ -254,8 +266,12 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
   const getGeneralInfo = async () => {
     setLoading(true);
 
-    const allWallets = await WalletService.getUserWallets(user.id);
+    const [allWallets, groups] = await Promise.all([
+      WalletService.getUserWallets(user.id),
+      WalletGroupService.getUserGroups(user.id),
+    ]);
     dispatch(setWalletsAction(allWallets));
+    dispatch(setWalletGroupsAction(groups));
     let walletId = user.activeWalletId;
     if (!walletId || !allWallets.some((w) => w.id === walletId)) {
       const def = allWallets.find((w) => w.isDefault) ?? allWallets[0];
@@ -308,17 +324,11 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     dispatch(setMonthAction(parsedMonth.format("MMMM")));
     dispatch(setYearAction(year));
 
-    const monthNumber = parsedMonth.month();
-    const startOfMonth = moment()
-      .year(year)
-      .month(monthNumber)
-      .startOf("month")
-      .format("YYYY-MM-DD");
-    const endOfMonth = moment()
-      .year(year)
-      .month(monthNumber)
-      .endOf("month")
-      .format("YYYY-MM-DD");
+    const { start: startOfMonth, end: endOfMonth } = getPeriodRange(
+      parsedMonth.format("MMMM"),
+      year,
+      cycleStartDay
+    );
 
     setLoading(true);
     const [expenses, incomes] = await Promise.all([
@@ -429,7 +439,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 px={5}
                 py={3}>
                 <Text fontFamily="SourceSansPro" color="muted.400" fontSize={20}>
-                  {user.month}
+                  {cycleStartDay > 1 ? formatPeriodLabel(user.month, selectedYear, cycleStartDay) : user.month}
                 </Text>
                 {loading ? (
                   <Skeleton mt={5} mb={3} h="5" width={20} rounded="full" startColor="indigo.300" />
@@ -580,6 +590,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
         isOpen={walletSheetOpen}
         onClose={() => setWalletSheetOpen(false)}
         wallets={wallets}
+        groups={walletGroups}
         activeWalletId={user.activeWalletId}
         balances={walletBalances}
         totalBalance={totalWalletBalance}

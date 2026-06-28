@@ -16,6 +16,7 @@ interface initalStateProps {
   accentColor: string;
   month: string;
   year: number;
+  cycleStartDay: number;
   activeWalletId: number;
 }
 
@@ -30,6 +31,7 @@ const initialState: initalStateProps = {
   accentColor: DEFAULT_ACCENT,
   month: currentMonth,
   year: currentYear,
+  cycleStartDay: 1,
   activeWalletId: 0,
 };
 
@@ -73,6 +75,9 @@ const userReducer = createSlice({
     setYear: (state, action) => {
       state.year = action.payload;
     },
+    setCycleStartDay: (state, action) => {
+      state.cycleStartDay = action.payload;
+    },
     setActiveWallet: (state, action) => {
       state.activeWalletId = action.payload;
     },
@@ -87,6 +92,7 @@ export const setThemeAction = userReducer.actions.setTheme;
 export const setAccentColorAction = userReducer.actions.setAccentColor;
 export const setMonthAction = userReducer.actions.setMonth;
 export const setYearAction = userReducer.actions.setYear;
+export const setCycleStartDayAction = userReducer.actions.setCycleStartDay;
 export const setActiveWalletAction = userReducer.actions.setActiveWallet;
 
 export default userReducer.reducer;

@@ -3,9 +3,18 @@ import { Alert, TouchableOpacity } from "react-native";
 import { VStack, Text, Pressable, Icon } from "native-base";
 import { Feather } from "@expo/vector-icons";
 import { useDispatch } from "react-redux";
-import { setCurrency, setUser, setActiveWalletAction } from "../redux/userReducer";
-import { setWalletsAction } from "../redux/expensesReducers";
+import {
+  setCurrency,
+  setUser,
+  setActiveWalletAction,
+  setCycleStartDayAction,
+  setMonthAction,
+  setYearAction,
+} from "../redux/userReducer";
+import { getCurrentPeriod } from "../utils/period";
+import { setWalletsAction, setWalletGroupsAction } from "../redux/expensesReducers";
 import { WalletService } from "../api/services/WalletService";
+import { WalletGroupService } from "../api/services/WalletGroupService";
 import { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { UserService } from "../api/services/UserService";
 import { Provider } from "../interfaces/Provider";
@@ -38,12 +47,25 @@ const LoginForm: React.FC<LoginFormProps> = ({ navigation }) => {
       const response = await UserService.loginUser(email, password, Provider.DIRECT);
       const message: any = response.message;
       if (message === "User exists") {
-        const { id, first_name, last_name, email, currency_code, currency_symbol } = response.data;
+        const { id, first_name, last_name, email, currency_code, currency_symbol, cycle_start_day } =
+          response.data;
 
         dispatch(setUser({ firstName: first_name, lastName: last_name, email, id }));
 
-        const userWallets = await WalletService.getUserWallets(id);
+        // Apply the saved billing-cycle start day, then snap the viewing period to
+        // whichever accounting month "now" falls in under that cycle.
+        const cycleStartDay = cycle_start_day ?? 1;
+        dispatch(setCycleStartDayAction(cycleStartDay));
+        const { month, year } = getCurrentPeriod(cycleStartDay);
+        dispatch(setMonthAction(month));
+        dispatch(setYearAction(year));
+
+        const [userWallets, userGroups] = await Promise.all([
+          WalletService.getUserWallets(id),
+          WalletGroupService.getUserGroups(id),
+        ]);
         dispatch(setWalletsAction(userWallets));
+        dispatch(setWalletGroupsAction(userGroups));
         const defaultWallet = userWallets.find((w) => w.isDefault) ?? userWallets[0];
         if (defaultWallet?.id) {
           dispatch(setActiveWalletAction(defaultWallet.id));

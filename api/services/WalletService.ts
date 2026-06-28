@@ -12,6 +12,8 @@ const mapWallet = (row: any): Wallet => ({
   color: row.color ?? null,
   isDefault: row.is_default ?? false,
   overallBudget: row.overall_budget ?? null,
+  excludeFromTotal: row.exclude_from_total ?? false,
+  groupId: row.group_id ?? null,
   createdAt: row.created_at,
 });
 
@@ -36,6 +38,8 @@ const createWallet = async (input: {
   name: string;
   icon?: string | null;
   color?: string | null;
+  excludeFromTotal?: boolean;
+  groupId?: number | null;
 }): Promise<Wallet> => {
   const { data, error } = await supabase
     .from(WALLETS)
@@ -45,6 +49,8 @@ const createWallet = async (input: {
       icon: input.icon ?? null,
       color: input.color ?? null,
       is_default: false,
+      exclude_from_total: input.excludeFromTotal ?? false,
+      group_id: input.groupId ?? null,
     })
     .select()
     .single();
@@ -54,11 +60,23 @@ const createWallet = async (input: {
 
 const updateWallet = async (
   id: number,
-  fields: { name: string; icon?: string | null; color?: string | null }
+  fields: {
+    name: string;
+    icon?: string | null;
+    color?: string | null;
+    excludeFromTotal?: boolean;
+    groupId?: number | null;
+  }
 ): Promise<void> => {
   const { error } = await supabase
     .from(WALLETS)
-    .update({ name: fields.name, icon: fields.icon ?? null, color: fields.color ?? null })
+    .update({
+      name: fields.name,
+      icon: fields.icon ?? null,
+      color: fields.color ?? null,
+      exclude_from_total: fields.excludeFromTotal ?? false,
+      group_id: fields.groupId ?? null,
+    })
     .eq("id", id);
   if (error) throw error;
 };

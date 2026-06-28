@@ -13,6 +13,7 @@ import { expenseSchema } from "../schemas/expenseSchema";
 import { incomeSchema } from "../schemas/incomeSchema";
 import EZButton from "../components/shared/EZButton";
 import CalculatorModal from "../components/CalculatorModal";
+import CalendarModal from "../components/CalendarModal";
 import COLORS from "../colors";
 import { ExpenseService } from "../api/services/ExpenseService";
 import { IncomeService } from "../api/services/IncomeService";
@@ -43,12 +44,20 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
   const categories = useSelector(categoriesSelector);
   const wallets = useSelector(walletsSelector);
   const accent = useAccent();
-  const activeWalletName = wallets.find((w: any) => w.id === user.activeWalletId)?.name ?? "";
+  const activeWallet = wallets.find((w: any) => w.id === user.activeWalletId);
+  const activeWalletName = activeWallet?.name ?? "";
+  const activeWalletExcluded = !!(activeWallet as any)?.excludeFromTotal;
   const [loading, setLoading] = useState<boolean>(false);
   const [calcOpen, setCalcOpen] = useState<boolean>(false);
   const [type, setType] = useState<TransactionType>(route?.params?.type ?? "expense");
+  // Back-dating: defaults to today, picker limited to past + today.
+  const [selectedDate, setSelectedDate] = useState<string>(moment().format("YYYY-MM-DD"));
+  const [dateOpen, setDateOpen] = useState<boolean>(false);
 
   const isIncome = type === "income";
+  const today = moment().format("YYYY-MM-DD");
+  const dateLabel =
+    selectedDate === today ? "Today" : moment(selectedDate).format("ddd, MMM D, YYYY");
 
   const formik = useFormik({
     initialValues: {
@@ -72,6 +81,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
             description,
             walletId: user.activeWalletId,
             categoryId: incomeCategory?.id,
+            payDate: selectedDate,
           };
 
           await IncomeService.addIncome(income);
@@ -79,7 +89,6 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
           dispatch(
             addIncomeAction({
               ...income,
-              payDate: moment().format("YYYY-MM-DD"),
               name: incomeCategory?.name,
               color: incomeCategory?.color,
             })
@@ -97,15 +106,14 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
           amount: numericFormat,
           description,
           walletId: user.activeWalletId,
+          payDate: selectedDate,
         };
 
-        const today = moment().format("YYYY-MM-DD");
         await ExpenseService.AddExpense(expense);
 
         dispatch(
           addExpenseAction({
             ...expense,
-            payDate: today,
             name: category,
             color: currentCategory.color,
           })
@@ -202,10 +210,45 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
             </HStack>
 
             {activeWalletName ? (
-              <Text fontFamily="SourceSansPro" fontSize={14} color={muted[500]} textAlign="center">
-                Adding to: {activeWalletName}
-              </Text>
+              <VStack alignItems="center" space={0.5}>
+                <Text fontFamily="SourceSansPro" fontSize={14} color={muted[500]} textAlign="center">
+                  Adding to: {activeWalletName}
+                </Text>
+                {activeWalletExcluded ? (
+                  <HStack alignItems="center" space={1}>
+                    <Ionicons name="eye-off-outline" size={12} color={muted[400]} />
+                    <Text fontFamily="SourceSansPro" fontSize={12} color={muted[400]}>
+                      Not counted in your total balance
+                    </Text>
+                  </HStack>
+                ) : null}
+              </VStack>
             ) : null}
+
+            {/* Date picker — defaults to today, allows back-dating */}
+            <Pressable width="100%" onPress={() => setDateOpen(true)} _pressed={{ opacity: 0.6 }}>
+              <HStack
+                alignItems="center"
+                justifyContent="space-between"
+                borderWidth={1.5}
+                borderColor="muted.200"
+                borderRadius={12}
+                px={4}
+                py={3}>
+                <HStack alignItems="center" space={2}>
+                  <Ionicons name="calendar-outline" size={20} color={accentColor} />
+                  <Text fontFamily="SourceSansPro" fontSize={16} color={muted[700]}>
+                    Date
+                  </Text>
+                </HStack>
+                <HStack alignItems="center" space={1}>
+                  <Text fontFamily="SourceBold" fontSize={16} color={accentColor}>
+                    {dateLabel}
+                  </Text>
+                  <Ionicons name="chevron-down" size={18} color={accentColor} />
+                </HStack>
+              </HStack>
+            </Pressable>
 
             <VStack space={4} alignItems="center" width="100%">
               <Text fontFamily="SourceBold" fontSize={32} textAlign="center">
@@ -436,6 +479,15 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
         initialValue={values.amount}
         accentColor={accentColor}
         onResult={(value: string) => handleValue("amount", value)}
+      />
+
+      <CalendarModal
+        isOpen={dateOpen}
+        onClose={() => setDateOpen(false)}
+        mode="single"
+        value={selectedDate}
+        maxDate={today}
+        onSelect={(d) => setSelectedDate(d)}
       />
     </SafeAreaView>
   );

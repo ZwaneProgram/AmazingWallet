@@ -16,6 +16,7 @@ import { TouchableOpacity } from "react-native";
 import PieChart from "react-native-pie-chart";
 import { useSelector } from "react-redux";
 import moment from "moment";
+import { getPeriodRange } from "../utils/period";
 import { RootState } from "../redux/store";
 import { StatusBar } from "expo-status-bar";
 import { categoriesSelector } from "../redux/expensesReducers";
@@ -62,17 +63,11 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
   const loadExpenses = async () => {
     const parsedMonth = moment(graphMonth, "MMMM");
     if (!parsedMonth.isValid()) return;
-    const monthNumber = parsedMonth.month();
-    const startOfMonth = moment()
-      .year(graphYear)
-      .month(monthNumber)
-      .startOf("month")
-      .format("YYYY-MM-DD");
-    const endOfMonth = moment()
-      .year(graphYear)
-      .month(monthNumber)
-      .endOf("month")
-      .format("YYYY-MM-DD");
+    const { start: startOfMonth, end: endOfMonth } = getPeriodRange(
+      graphMonth,
+      graphYear,
+      user.cycleStartDay || 1
+    );
 
     setLoading(true);
     const data = await ExpenseService.getMonthExpenses(

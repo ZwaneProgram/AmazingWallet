@@ -4,8 +4,9 @@ import { Budget } from "../interfaces/Budget";
 import { Category } from "../interfaces/Category";
 import { Expense } from "../interfaces/Expense";
 import { Income } from "../interfaces/Income";
-import { Wallet } from "../interfaces/Wallet";
+import { Wallet, WalletGroup } from "../interfaces/Wallet";
 import { computeCategoryRollup } from "../utils/categoryRollup";
+import { getPeriodRange } from "../utils/period";
 import { RootState } from "./store";
 
 const todayDate = moment().format("YYYY-MM-DD");
@@ -18,6 +19,7 @@ interface initialStateProps {
   categories: Category[];
   budgets: Budget[];
   wallets: Wallet[];
+  walletGroups: WalletGroup[];
 }
 
 const initialState: initialStateProps = {
@@ -28,6 +30,7 @@ const initialState: initialStateProps = {
   categories: [],
   budgets: [],
   wallets: [],
+  walletGroups: [],
 };
 
 const expensesReducer = createSlice({
@@ -75,6 +78,9 @@ const expensesReducer = createSlice({
     setWallets: (state, action) => {
       state.wallets = action.payload;
     },
+    setWalletGroups: (state, action) => {
+      state.walletGroups = action.payload;
+    },
     editBudgets: (state, action) => {
       let budgets = action.payload;
 
@@ -121,6 +127,7 @@ export const setCategoriesAction = expensesReducer.actions.setCategories;
 export const setBudgetsAction = expensesReducer.actions.setBudgets;
 export const editBudgetsAction = expensesReducer.actions.editBudgets;
 export const setWalletsAction = expensesReducer.actions.setWallets;
+export const setWalletGroupsAction = expensesReducer.actions.setWalletGroups;
 
 //selectors
 const generalState = (state: RootState) => state.expenses;
@@ -135,19 +142,14 @@ export const todayTotalSelector = createSelector([generalState], (expenses: any)
 export const monthTotalSelector = createSelector([globalState], (globalState: any) => {
   const currentMonth = globalState.user.month;
   const currentYear = globalState.user.year || moment().year();
+  const cycleStartDay = globalState.user.cycleStartDay || 1;
   const parsedMonth = moment(currentMonth, "MMMM");
   if (parsedMonth.isValid()) {
-    const monthNumber = parsedMonth.month();
-    const startOfMonth = moment()
-      .year(currentYear)
-      .month(monthNumber)
-      .startOf("month")
-      .format("YYYY-MM-DD");
-    const endOfMonth = moment()
-      .year(currentYear)
-      .month(monthNumber)
-      .endOf("month")
-      .format("YYYY-MM-DD");
+    const { start: startOfMonth, end: endOfMonth } = getPeriodRange(
+      currentMonth,
+      currentYear,
+      cycleStartDay
+    );
     return globalState.expenses.expenses
       .filter(
         (expense: Expense) => expense.payDate >= startOfMonth && expense.payDate <= endOfMonth
@@ -199,22 +201,22 @@ export const categoryRollupSelector = createSelector([generalState], (state: any
 
 export const walletsSelector = createSelector([generalState], (expenses: any) => expenses.wallets);
 
+export const walletGroupsSelector = createSelector(
+  [generalState],
+  (expenses: any) => expenses.walletGroups
+);
+
 export const monthIncomeTotalSelector = createSelector([globalState], (globalState: any) => {
   const currentMonth = globalState.user.month;
   const currentYear = globalState.user.year || moment().year();
+  const cycleStartDay = globalState.user.cycleStartDay || 1;
   const parsedMonth = moment(currentMonth, "MMMM");
   if (parsedMonth.isValid()) {
-    const monthNumber = parsedMonth.month();
-    const startOfMonth = moment()
-      .year(currentYear)
-      .month(monthNumber)
-      .startOf("month")
-      .format("YYYY-MM-DD");
-    const endOfMonth = moment()
-      .year(currentYear)
-      .month(monthNumber)
-      .endOf("month")
-      .format("YYYY-MM-DD");
+    const { start: startOfMonth, end: endOfMonth } = getPeriodRange(
+      currentMonth,
+      currentYear,
+      cycleStartDay
+    );
     return globalState.expenses.incomes
       .filter((income: Income) => income.payDate >= startOfMonth && income.payDate <= endOfMonth)
       .reduce((accumulator: number, currentValue: Income) => accumulator + currentValue.amount, 0);
