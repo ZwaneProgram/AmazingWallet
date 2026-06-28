@@ -208,6 +208,7 @@ const getAllTransfers = async (userId: number) => {
       amount: row.amount,
       description: row.description,
       payDate: row.date,
+      createdAt: row.created_at,
       fromWalletId: row.from_wallet_id,
       toWalletId: row.to_wallet_id,
     }));

@@ -58,7 +58,7 @@ import { WalletService } from "../api/services/WalletService";
 import { WalletGroupService } from "../api/services/WalletGroupService";
 import { MonthlyCostService } from "../api/services/MonthlyCostService";
 import { MonthlyCost } from "../interfaces/MonthlyCost";
-import { isDue, payMonthlyCost, snoozeMonthlyCost } from "../utils/monthlyCosts";
+import { dueDayArrived, isSnoozedToday, payMonthlyCost, snoozeMonthlyCost } from "../utils/monthlyCosts";
 import { useAccent } from "../hooks/useAccent";
 import { getPeriodRange, formatPeriodLabel } from "../utils/period";
 
@@ -95,9 +95,14 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     const merged: any[] = [
       ...expenses.map((e: any) => ({ ...e, kind: "expense" })),
       ...incomes.map((i: any) => ({ ...i, kind: "income" })),
-    ].sort((a, b) =>
-      a.payDate < b.payDate ? 1 : a.payDate > b.payDate ? -1 : (b.id ?? 0) - (a.id ?? 0)
-    );
+    ].sort((a, b) => {
+      // Newest day first, then newest-logged first (created_at), then id.
+      if (a.payDate !== b.payDate) return a.payDate < b.payDate ? 1 : -1;
+      const ac = a.createdAt ?? "";
+      const bc = b.createdAt ?? "";
+      if (ac !== bc) return ac < bc ? 1 : -1;
+      return (b.id ?? 0) - (a.id ?? 0);
+    });
     return merged.slice(0, 10);
   }, [expenses, incomes]);
 
@@ -326,8 +331,9 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     navigation.navigate("EditBudgets");
   };
 
-  // Monthly costs whose due day has arrived this month and aren't paid/snoozed.
-  const dueCosts = (monthlyCosts as MonthlyCost[]).filter((c) => isDue(c));
+  // Monthly costs whose due day has arrived this month and aren't paid. Snoozed
+  // ones stay in the list (shown as a reminder) instead of disappearing.
+  const dueCosts = (monthlyCosts as MonthlyCost[]).filter((c) => dueDayArrived(c));
   const costDayLabel = (n: number) => {
     const s = ["th", "st", "nd", "rd"];
     const v = n % 100;
@@ -496,6 +502,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 {dueCosts.map((c) => {
                   const isIncome = c.type === "income";
                   const tint = isIncome ? COLORS.EMERALD[500] : COLORS.DANGER[500];
+                  const snoozed = isSnoozedToday(c);
                   const wName = (wallets as any[]).find((w) => w.id === c.walletId)?.name ?? "";
                   return (
                     <Box key={c.id} bg="muted.50" borderRadius={14} shadow={1} px={4} py={3}>
@@ -513,28 +520,46 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                           {isIncome ? "+" : "-"} {user.symbol} {c.amount.toFixed(2)}
                         </Text>
                       </HStack>
-                      <HStack space={2} mt={3}>
-                        <Pressable flex={1} onPress={() => handlePayDue(c)} _pressed={{ opacity: 0.7 }}>
-                          <Box bg={accent[700]} borderRadius={10} py={2.5} alignItems="center">
-                            <Text fontFamily="SourceBold" fontSize={14} color="white">
-                              {isIncome ? "Received it" : "Paid it"}
+                      {snoozed ? (
+                        <VStack mt={3} space={2}>
+                          <HStack alignItems="center" space={1}>
+                            <Feather name="clock" size={13} color={COLORS.MUTED[400]} />
+                            <Text fontFamily="SourceSansPro" fontSize={13} color="muted.400">
+                              Reminder — back tomorrow
                             </Text>
-                          </Box>
-                        </Pressable>
-                        <Pressable onPress={() => handleSnoozeDue(c)} _pressed={{ opacity: 0.7 }}>
-                          <Box
-                            borderWidth={1.5}
-                            borderColor="muted.300"
-                            borderRadius={10}
-                            py={2.5}
-                            px={4}
-                            alignItems="center">
-                            <Text fontFamily="SourceBold" fontSize={14} color="muted.500">
-                              Tomorrow
-                            </Text>
-                          </Box>
-                        </Pressable>
-                      </HStack>
+                          </HStack>
+                          <Pressable onPress={() => handlePayDue(c)} _pressed={{ opacity: 0.7 }}>
+                            <Box bg={tint} borderRadius={10} py={2.5} alignItems="center">
+                              <Text fontFamily="SourceBold" fontSize={14} color="white">
+                                {isIncome ? "Received it" : "Paid it"}
+                              </Text>
+                            </Box>
+                          </Pressable>
+                        </VStack>
+                      ) : (
+                        <HStack space={2} mt={3}>
+                          <Pressable flex={1} onPress={() => handlePayDue(c)} _pressed={{ opacity: 0.7 }}>
+                            <Box bg={tint} borderRadius={10} py={2.5} alignItems="center">
+                              <Text fontFamily="SourceBold" fontSize={14} color="white">
+                                {isIncome ? "Received it" : "Paid it"}
+                              </Text>
+                            </Box>
+                          </Pressable>
+                          <Pressable onPress={() => handleSnoozeDue(c)} _pressed={{ opacity: 0.7 }}>
+                            <Box
+                              borderWidth={1.5}
+                              borderColor="muted.300"
+                              borderRadius={10}
+                              py={2.5}
+                              px={4}
+                              alignItems="center">
+                              <Text fontFamily="SourceBold" fontSize={14} color="muted.500">
+                                Tomorrow
+                              </Text>
+                            </Box>
+                          </Pressable>
+                        </HStack>
+                      )}
                     </Box>
                   );
                 })}

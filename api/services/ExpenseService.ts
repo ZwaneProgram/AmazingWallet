@@ -39,7 +39,7 @@ const getMonthExpenses = async (userId: number, startOfMonth: string, endOfMonth
   try {
     const { data, error } = await supabase
       .from(EXPENSES)
-      .select("id, amount, description, date, category_id, categories(name, color)")
+      .select("id, amount, description, date, created_at, category_id, categories(name, color)")
       .eq("user_id", userId)
       .eq("wallet_id", walletId)
       .gte("date", startOfMonth)
@@ -54,6 +54,7 @@ const getMonthExpenses = async (userId: number, startOfMonth: string, endOfMonth
       amount: row.amount,
       description: row.description,
       payDate: row.date,
+      createdAt: row.created_at,
       name: row.categories?.name,
       color: row.categories?.color,
     }));
@@ -128,7 +129,7 @@ const getAllExpensesEveryWallet = async (userId: number) => {
   try {
     const { data, error } = await supabase
       .from(EXPENSES)
-      .select("id, amount, description, date, category_id, wallet_id, categories(name, color)")
+      .select("id, amount, description, date, created_at, category_id, wallet_id, categories(name, color)")
       .eq("user_id", userId)
       .order("date", { ascending: false });
 
@@ -141,6 +142,7 @@ const getAllExpensesEveryWallet = async (userId: number) => {
       amount: row.amount,
       description: row.description,
       payDate: row.date,
+      createdAt: row.created_at,
       categoryId: row.category_id,
       walletId: row.wallet_id,
       name: row.categories?.name,

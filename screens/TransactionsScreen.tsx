@@ -156,7 +156,15 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
         fromWalletName: walletById.get(t.fromWalletId)?.name,
         toWalletName: walletById.get(t.toWalletId)?.name,
       })),
-    ].sort((a, b) => (a.payDate < b.payDate ? 1 : a.payDate > b.payDate ? -1 : b.id - a.id));
+    ].sort((a, b) => {
+      // Newest day first; within a day, newest-logged first (created_at), since
+      // expense/income ids are separate sequences and can't be compared directly.
+      if (a.payDate !== b.payDate) return a.payDate < b.payDate ? 1 : -1;
+      const ac = (a as any).createdAt ?? "";
+      const bc = (b as any).createdAt ?? "";
+      if (ac !== bc) return ac < bc ? 1 : -1;
+      return (b.id ?? 0) - (a.id ?? 0);
+    });
 
     setTransactions(merged);
     setLoading(false);

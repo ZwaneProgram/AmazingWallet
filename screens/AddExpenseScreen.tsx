@@ -90,6 +90,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
             addIncomeAction({
               ...income,
               id: createdIncome.id,
+              createdAt: new Date().toISOString(),
               name: incomeCategory?.name,
               color: incomeCategory?.color,
             })
@@ -116,6 +117,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
           addExpenseAction({
             ...expense,
             id: createdExpense.id,
+            createdAt: new Date().toISOString(),
             name: category,
             color: currentCategory.color,
           })

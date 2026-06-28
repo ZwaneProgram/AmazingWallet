@@ -26,6 +26,17 @@ export const isDue = (cost: MonthlyCost, ref: moment.Moment = moment()): boolean
   return true;
 };
 
+// Due-day reached + unpaid + active, REGARDLESS of snooze. The Home card shows
+// these so a snoozed item stays visible as a reminder instead of vanishing.
+export const dueDayArrived = (cost: MonthlyCost, ref: moment.Moment = moment()): boolean => {
+  if (cost.active === false) return false;
+  if (isPaidThisPeriod(cost)) return false;
+  return ref.date() >= cost.dayOfMonth;
+};
+
+export const isSnoozedToday = (cost: MonthlyCost, ref: moment.Moment = moment()): boolean =>
+  !!cost.snoozeUntil && ref.format("YYYY-MM-DD") <= cost.snoozeUntil;
+
 export const costStatus = (cost: MonthlyCost, ref: moment.Moment = moment()): CostStatus => {
   if (isPaidThisPeriod(cost)) return "paid";
   if (ref.date() >= cost.dayOfMonth) return "due";
@@ -72,6 +83,7 @@ export const payMonthlyCost = async (
           walletId: cost.walletId,
           categoryId: cost.categoryId,
           payDate: today,
+          createdAt: new Date().toISOString(),
           name: cat?.name,
           color: cat?.color,
         })
@@ -96,6 +108,7 @@ export const payMonthlyCost = async (
           description: cost.name,
           walletId: cost.walletId,
           payDate: today,
+          createdAt: new Date().toISOString(),
           name: cat?.name,
           color: cat?.color,
         })

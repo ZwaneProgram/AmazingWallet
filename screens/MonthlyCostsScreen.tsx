@@ -259,10 +259,18 @@ const MonthlyCostsScreen: React.FC<Props> = ({ navigation }) => {
                 px={3}
                 py={1.5}
                 borderRadius={9}
-                bg={accent[700]}
+                bg={tint}
                 _pressed={{ opacity: 0.7 }}>
                 <Text fontFamily="SourceBold" fontSize={13} color="white">
-                  {busyId === cost.id ? "…" : status === "due" ? "Pay now" : "Pay early"}
+                  {busyId === cost.id
+                    ? "…"
+                    : isIncome
+                    ? status === "due"
+                      ? "Receive now"
+                      : "Receive early"
+                    : status === "due"
+                    ? "Pay now"
+                    : "Pay early"}
                 </Text>
               </Pressable>
             )}
@@ -364,7 +372,7 @@ const MonthlyCostsScreen: React.FC<Props> = ({ navigation }) => {
                           py={2}
                           borderRadius={10}
                           alignItems="center"
-                          bg={active ? (t === "income" ? "emerald.500" : "purple.700") : "transparent"}>
+                          bg={active ? (t === "income" ? "emerald.500" : "danger.500") : "transparent"}>
                           <Text
                             fontFamily="SourceBold"
                             fontSize={15}

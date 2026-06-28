@@ -51,7 +51,15 @@ const CategoryExpensesScreen: React.FC<Props> = ({ navigation, route }) => {
     <SafeAreaView>
       <StatusBar style={theme === "dark" ? "light" : "dark"} />
       <ScrollView contentContainerStyle={{ padding: 24 }}>
-        {expenses.map((expense: Expense, index: number) => {
+        {[...expenses]
+          .sort((a: any, b: any) => {
+            if (a.payDate !== b.payDate) return a.payDate < b.payDate ? 1 : -1;
+            const ac = a.createdAt ?? "";
+            const bc = b.createdAt ?? "";
+            if (ac !== bc) return ac < bc ? 1 : -1;
+            return (b.id ?? 0) - (a.id ?? 0);
+          })
+          .map((expense: Expense, index: number) => {
           const parsedDate = moment(expense.payDate, "YYYY-MM-DD");
           const formattedDate = parsedDate.format("D MMMM");
 
