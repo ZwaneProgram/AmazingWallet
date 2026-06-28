@@ -66,8 +66,19 @@ Conventions:
 `exclude_from_total`, `cycle_start_day`, `wallet_groups`, `monthly_costs`,
 `category_type`, `created_at_ordering`.
 
-## What's left
-1. **#15 — notification-bar quick-add shortcuts.** Needs a real **EAS native build**
-   (can't run in Expo Go). Biggest remaining piece; deferred to last.
-2. Housekeeping: refresh stale `PROJECT_NOTES.md` (still says SDK 56 / "ExpenseZen");
-   broader mobile-responsiveness pass on new screens.
+## Status: 1.0 = FINAL (demo)
+This repo is **AmazingWallet 1.0 final** — all 20 roadmap items done bar #15.
+Possible small UI tweaks only. **2.0 will be a separate cloned repo** for the
+remaining big features below.
+
+## Deferred to 2.0 (do NOT build here)
+1. **#15 — notification-bar quick-add shortcuts** (＋income/expense, history, wallet
+   overview). Needs an EAS native build (can't run in Expo Go).
+2. **#21 — Lend / Borrow debt tracker.** Add-screen button → "Lend" vs "Borrow"
+   page (amount + person + note); a dedicated debts page split Lent / Borrowed
+   (date, amount, person, note); tap to repay into/from a chosen wallet with
+   partial-amount editing; settled items move to a past-debts history page.
+
+## Housekeeping (optional, 1.0)
+- Refresh stale `PROJECT_NOTES.md` (still says SDK 56 / "ExpenseZen").
+- Broader mobile-responsiveness pass on new screens.
