@@ -51,7 +51,6 @@ const SettingsScreen: React.FC<any> = () => {
 
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const [currencies, setCurrencies] = useState<any[]>([]);
-  const [notificationsAllowed, toggleNotificationsAllowed] = useState<boolean>(false);
   const [theme, toggleTheme] = useState<boolean>(user.theme === "light" ? false : true);
 
   const [isCurrencyOpen, setIsCurrencyOpen] = useState<boolean>(false);
@@ -287,25 +286,6 @@ const SettingsScreen: React.FC<any> = () => {
           disabled: false,
         },
         {
-          icon: (
-            <Ionicons
-              name={notificationsAllowed ? "notifications" : "notifications-off"}
-              size={18}
-              color={COLORS.MUTED[50]}
-            />
-          ),
-          color: "primary.500",
-          label: "Notifications",
-          onPress: () => toggleNotificationsAllowed(!notificationsAllowed),
-          rightElement: (
-            <Switch
-              value={notificationsAllowed}
-              onValueChange={() => toggleNotificationsAllowed(!notificationsAllowed)}
-            />
-          ),
-          disabled: true,
-        },
-        {
           icon: <Ionicons name={theme ? "moon" : "sunny"} size={18} color={COLORS.MUTED[50]} />,
           color: "violet.800",
           label: user.theme === "light" ? "Light theme" : "Dark theme",
@@ -349,14 +329,6 @@ const SettingsScreen: React.FC<any> = () => {
           disabled: false,
         },
         {
-          icon: <Ionicons name="newspaper-sharp" size={18} color={COLORS.MUTED[50]} />,
-          color: "green.500",
-          label: "About",
-          rightElement: <FontAwesome name="angle-right" size={26} color={muted[900]} />,
-          onPress: () => navigation.navigate("About"),
-          disabled: false,
-        },
-        {
           icon: <AntDesign name="logout" size={18} color={COLORS.MUTED[50]} />,
           color: "yellow.500",
           label: "Logout",
@@ -373,7 +345,7 @@ const SettingsScreen: React.FC<any> = () => {
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={{ paddingVertical: 24 }}>
         {SECTIONS.map(({ header, items }, key) => (
-          <View paddingX={"24px"} key={key}>
+          <View paddingX={"24px"} key={key} w="100%" maxW="560px" alignSelf="center">
             <Text
               paddingY={"12px"}
               fontSize={14}
@@ -390,10 +362,11 @@ const SettingsScreen: React.FC<any> = () => {
                     <HStack
                       alignItems="center"
                       justifyContent="space-between"
-                      height={50}
-                      bg={user.theme === "dark" ? "muted.50" : "muted.200"}
-                      borderRadius={8}
-                      paddingX={"12px"}>
+                      height={58}
+                      bg={user.theme === "dark" ? "muted.50" : "muted.50"}
+                      borderRadius={16}
+                      shadow={1}
+                      paddingX={"14px"}>
                       <HStack space="12px" alignItems="center" flex={1} mr={2}>
                         <Circle bg={color} size="32px">
                           {icon}

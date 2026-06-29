@@ -4,6 +4,7 @@ import { useSelector } from "react-redux";
 import Navigation from "../navigation/Navigation";
 import { RootState } from "../redux/store";
 import { buildAccentRamp, DEFAULT_ACCENT } from "../utils/accent";
+import { nbShadows, nbRadii, componentDefaults } from "../theme/designSystem";
 
 // --- native-base ↔ modern React Native compatibility shim ---------------------
 // native-base 3.x hardcodes web-only CSS values (e.g. outlineWidth: "0" / "2px")
@@ -73,7 +74,19 @@ const AppContainer: React.FC<any> = () => {
   // accounts persisted before this setting existed.
   const accentRamp = buildAccentRamp(user.accentColor || DEFAULT_ACCENT);
 
+  // Layer our "soft modern fintech" defaults (rounder buttons/inputs) on top of
+  // the sanitized native-base component themes, so the whole app restyles at once.
+  const mergedComponents: any = { ...sanitizedComponents };
+  for (const name of Object.keys(componentDefaults)) {
+    mergedComponents[name] = {
+      ...(sanitizedComponents[name] || {}),
+      ...(componentDefaults as any)[name],
+    };
+  }
+
   const theme = extendTheme({
+    shadows: nbShadows,
+    radii: nbRadii,
     colors: {
       purple: accentRamp,
       primary: accentRamp,
@@ -90,7 +103,7 @@ const AppContainer: React.FC<any> = () => {
         900: isDarkTheme ? "#fafafa" : "#171717",
       },
     },
-    components: sanitizedComponents,
+    components: mergedComponents,
     config: {
       initialColorMode: user.theme,
     },

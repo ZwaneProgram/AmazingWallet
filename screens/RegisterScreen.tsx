@@ -23,7 +23,7 @@ const RegisterScreen: React.FC<RegisterScreenProps> = ({ navigation }) => {
       <StatusBar style={user.theme === "dark" ? "light" : "dark"} />
 
       <KeyboardAwareScrollView showsVerticalScrollIndicator={false}>
-        <VStack space={10} px={5} paddingTop={10}>
+        <VStack space={10} px={5} paddingTop={10} w="100%" maxW="440px" alignSelf="center">
           <RegisterForm />
           <HStack justifyContent="center" space={2}>
             <Text fontFamily="SourceSansPro" fontSize={17}>

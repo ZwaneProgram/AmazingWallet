@@ -195,14 +195,14 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
         <View flex={1} pt={16} alignItems="center" justifyContent="space-between">
           <VStack alignItems="center" width="100%" maxW={520} px={6} space={8}>
             {/* Segmented Expense / Income toggle */}
-            <HStack bg={user.theme === "dark" ? "muted.50" : "muted.100"} borderRadius={14} p={1} width="100%">
+            <HStack bg={user.theme === "dark" ? "muted.50" : "muted.100"} borderRadius={16} p={1} width="100%">
               {(["expense", "income"] as TransactionType[]).map((t) => {
                 const active = type === t;
                 return (
                   <Pressable key={t} flex={1} onPress={() => switchType(t)}>
                     <View
                       py={2.5}
-                      borderRadius={11}
+                      borderRadius={13}
                       alignItems="center"
                       bg={active ? (t === "income" ? "emerald.500" : "purple.700") : "transparent"}>
                       <Text

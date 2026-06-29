@@ -124,7 +124,7 @@ const EditBudgetScreen: React.FC<EditBudgetScreenProps> = ({ navigation }) => {
         style={{ backgroundColor: user.theme === "dark" ? "#111827" : "#ffffff" }}
         contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}>
 
-        <VStack mt={10} space={6} px={7}>
+        <VStack mt={10} space={6} px={7} w="100%" maxW="560px" alignSelf="center">
           <TouchableOpacity
             style={{
               position: "absolute",

@@ -17,7 +17,7 @@ const ChangePasswordScreen: React.FC<any> = () => {
         showsVerticalScrollIndicator={false}
         style={{ backgroundColor: user.theme === "dark" ? "#111827" : "#ffffff" }}
         contentContainerStyle={{ flexGrow: 1 }}>
-        <VStack space={10} px={5} paddingTop={10}>
+        <VStack space={10} px={5} paddingTop={10} w="100%" maxW="440px" alignSelf="center">
           <ChangePasswordForm />
         </VStack>
       </KeyboardAwareScrollView>

@@ -205,7 +205,7 @@ const MonthlyCostsScreen: React.FC<Props> = ({ navigation }) => {
     const paused = cost.active === false;
     const cat = parentCategories.find((c) => c.id === cost.categoryId);
     return (
-      <Box bg="muted.50" borderRadius={16} shadow={1} px={4} py={3} mb={3} opacity={paused ? 0.55 : 1}>
+      <Box bg="muted.50" borderRadius={22} shadow={1} px={4} py={4} mb={3} opacity={paused ? 0.55 : 1}>
         <HStack alignItems="center" space={3}>
           <Box
             width="40px"

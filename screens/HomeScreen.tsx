@@ -103,7 +103,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
       if (ac !== bc) return ac < bc ? 1 : -1;
       return (b.id ?? 0) - (a.id ?? 0);
     });
-    return merged.slice(0, 10);
+    return merged.slice(0, 5);
   }, [expenses, incomes]);
 
   useLayoutEffect(() => {
@@ -409,10 +409,10 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
     <View flex={1}>
       <StatusBar style="light" />
       <ScrollView flex={1} showsVerticalScrollIndicator={false}>
-        <View flex={1} pt={10} px={7}>
+        <View flex={1} pt={10} px={7} w="100%" maxW="560px" alignSelf="center">
           <VStack space={8}>
             {overallBudget > 0 && (
-              <Box bg="muted.50" borderRadius={16} shadow={2} px={5} py={4}>
+              <Box bg="muted.50" borderRadius={22} shadow={2} px={5} py={5}>
                 <VStack mb={2} space={0.5}>
                   <Text fontFamily="SourceBold" fontSize={18}>
                     Overall budget
@@ -440,7 +440,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                 )}
               </Box>
             )}
-            <Box bg="muted.50" borderRadius={16} shadow={2} px={5} py={4}>
+            <Box bg="muted.50" borderRadius={22} shadow={2} px={5} py={5}>
               <HStack justifyContent="space-between">
                 <VStack space={1}>
                   <HStack space={1} alignItems="center">
@@ -505,7 +505,7 @@ const HomeScreen: React.FC<HomeScreenProps> = ({ navigation }) => {
                   const snoozed = isSnoozedToday(c);
                   const wName = (wallets as any[]).find((w) => w.id === c.walletId)?.name ?? "";
                   return (
-                    <Box key={c.id} bg="muted.50" borderRadius={14} shadow={1} px={4} py={3}>
+                    <Box key={c.id} bg="muted.50" borderRadius={18} shadow={1} px={4} py={4}>
                       <HStack justifyContent="space-between" alignItems="center">
                         <VStack flex={1} pr={2}>
                           <Text fontFamily="SourceBold" fontSize={16} numberOfLines={1}>

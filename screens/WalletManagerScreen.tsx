@@ -298,10 +298,10 @@ const WalletManagerScreen: React.FC<WalletManagerScreenProps> = ({ navigation })
       alignItems="center"
       justifyContent="space-between"
       bg="muted.50"
-      borderRadius={14}
+      borderRadius={18}
       shadow={1}
       px={4}
-      py={3}>
+      py={3.5}>
       <HStack alignItems="center" space={3} flex={1}>
         <Box
           width="42px"

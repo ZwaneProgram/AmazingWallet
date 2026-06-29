@@ -29,6 +29,7 @@ import { renderCategoryIcon } from "../utils/categoryIcons";
 import COLORS from "../colors";
 import { useAccent } from "../hooks/useAccent";
 import { AntDesign, Feather } from "@expo/vector-icons";
+import { SHADOWS } from "../theme/designSystem";
 
 interface GraphScreenProps {
   navigation: NavigationProp<ParamListBase>;
@@ -132,7 +133,7 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
   };
 
   return (
-    <View pt={6} flex={1} alignItems="center" flexDirection="column" style={{ gap: 16 }}>
+    <View pt={6} flex={1} alignItems="center" flexDirection="column" w="100%" maxW="640px" alignSelf="center" style={{ gap: 16 }}>
       <StatusBar style="light" />
 
       {/* Period picker — independent of Home */}
@@ -149,7 +150,8 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
             px={4}
             py={2}
             borderRadius={20}
-            bg={user.theme === "dark" ? "muted.50" : "muted.100"}>
+            style={SHADOWS.pill as any}
+            bg={user.theme === "dark" ? "muted.50" : "muted.50"}>
             <Feather
               name="calendar"
               size={14}
@@ -176,16 +178,11 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
         flexDirection="row"
         justifyContent={hasData ? "space-between" : "center"}
         w="90%"
-        py={4}
+        py={5}
         px={2}
-        style={{
-          shadowColor: "#171717",
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-        }}
+        shadow={2}
         bg="muted.50"
-        borderRadius={20}>
+        borderRadius={22}>
         {loading ? (
           <View w="100%" alignItems="center" justifyContent="center" py={16}>
             <Spinner color="purple.700" size="lg" />

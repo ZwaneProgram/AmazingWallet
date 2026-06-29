@@ -50,7 +50,7 @@ const CategoryExpensesScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <SafeAreaView>
       <StatusBar style={theme === "dark" ? "light" : "dark"} />
-      <ScrollView contentContainerStyle={{ padding: 24 }}>
+      <ScrollView contentContainerStyle={{ padding: 24, width: "100%", maxWidth: 640, alignSelf: "center" }}>
         {[...expenses]
           .sort((a: any, b: any) => {
             if (a.payDate !== b.payDate) return a.payDate < b.payDate ? 1 : -1;

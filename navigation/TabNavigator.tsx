@@ -72,7 +72,13 @@ const TabNavigator: React.FC<any> = () => {
             paddingTop: 6,
             paddingBottom: insets.bottom + 4,
             backgroundColor: isDark ? "#1f2937" : "#ffffff",
-            borderTopColor: isDark ? "#374151" : "#e5e5e5",
+            borderTopWidth: 0,
+            // Soft lift so the bar reads as a floating surface, not a hairline.
+            shadowColor: "#0f172a",
+            shadowOffset: { width: 0, height: -6 },
+            shadowOpacity: isDark ? 0.3 : 0.07,
+            shadowRadius: 16,
+            elevation: 12,
           },
           headerBackground: () => <EZHeaderBackground />,
         }}>
@@ -147,12 +153,13 @@ const TabNavigator: React.FC<any> = () => {
       </Tab.Navigator>
       <Animated.View
         style={{
-          width: tabWidth,
-          height: 2,
-          backgroundColor: accent[700],
+          width: tabWidth * 0.42,
+          height: 4,
+          marginLeft: tabWidth * 0.29,
+          backgroundColor: activeColor,
           position: "absolute",
           borderRadius: 50,
-          bottom: tabBarHeight - 2,
+          bottom: tabBarHeight - 4,
           transform: [{ translateX: tabOffsetValue }],
         }}
       />

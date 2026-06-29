@@ -78,7 +78,7 @@ const WalletsOverviewScreen: React.FC<WalletsOverviewScreenProps> = ({ navigatio
   );
 
   const renderWalletCard = (s: WalletSummary) => (
-    <Box key={s.walletId} bg="muted.50" borderRadius={16} shadow={2} px={5} py={4} mb={3}>
+    <Box key={s.walletId} bg="muted.50" borderRadius={22} shadow={2} px={5} py={5} mb={3}>
       <HStack alignItems="center" space={3} mb={3}>
         <Box
           width="44px"
@@ -202,7 +202,7 @@ const WalletsOverviewScreen: React.FC<WalletsOverviewScreenProps> = ({ navigatio
           <ScrollView
             showsVerticalScrollIndicator={false}
             contentContainerStyle={{ paddingBottom: 40 }}>
-            <Box bg="muted.50" borderRadius={16} shadow={2} px={5} py={4} mb={4}>
+            <Box bg="muted.50" borderRadius={22} shadow={2} px={5} py={5} mb={4}>
               <HStack justifyContent="space-between" alignItems="center">
                 <Text fontFamily="SourceBold" fontSize={18}>
                   Net Balance

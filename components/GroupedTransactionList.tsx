@@ -172,10 +172,10 @@ const GroupedTransactionList: React.FC<Props> = ({
         <HStack
           alignItems="center"
           justifyContent="space-between"
-          borderRadius={14}
+          borderRadius={18}
           shadow={1}
           px={4}
-          py={3}
+          py={3.5}
           style={{ backgroundColor: bg }}>
           <HStack alignItems="center" space={3} flex={1}>
             <Box
@@ -250,10 +250,10 @@ const GroupedTransactionList: React.FC<Props> = ({
           <HStack
             alignItems="center"
             justifyContent="space-between"
-            borderRadius={14}
+            borderRadius={18}
             shadow={1}
             px={4}
-            py={3}
+            py={3.5}
             style={{ backgroundColor: COLORS.DANGER[500] }}>
             <HStack alignItems="center" space={3} flex={1}>
               <Box

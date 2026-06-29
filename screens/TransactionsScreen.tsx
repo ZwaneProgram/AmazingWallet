@@ -27,6 +27,7 @@ import { RootState } from "../redux/store";
 import COLORS from "../colors";
 import { renderCategoryIcon } from "../utils/categoryIcons";
 import { useAccent } from "../hooks/useAccent";
+import { SHADOWS } from "../theme/designSystem";
 import { ExpenseService } from "../api/services/ExpenseService";
 import { IncomeService } from "../api/services/IncomeService";
 import { CategoryService } from "../api/services/CategoryService";
@@ -382,7 +383,7 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
   return (
     <View flex={1}>
       <StatusBar style="light" />
-      <View flex={1} pt={6} px={6}>
+      <View flex={1} pt={6} px={6} w="100%" maxW="640px" alignSelf="center">
         {/* Period picker — page through months (or years when viewing "All") */}
         <HStack alignItems="center" justifyContent="space-between" mb={3}>
           <TouchableOpacity
@@ -402,7 +403,8 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
               px={4}
               py={2}
               borderRadius={20}
-              bg={isDark ? "muted.50" : "muted.100"}>
+              style={SHADOWS.pill as any}
+              bg={isDark ? "muted.50" : "muted.50"}>
               <Feather
                 name="calendar"
                 size={14}
@@ -461,8 +463,9 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
         <HStack
           alignItems="center"
           space={2}
-          bg={isDark ? "muted.50" : "muted.100"}
-          borderRadius={12}
+          bg={isDark ? "muted.50" : "muted.50"}
+          borderRadius={14}
+          shadow={1}
           px={4}
           py={Platform.OS === "ios" ? 3 : 1.5}
           mb={3}>
@@ -491,8 +494,9 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
         {/* Wallet filter */}
         <Pressable onPress={() => setWalletSheetOpen(true)} mb={3}>
           <HStack
-            bg={isDark ? "muted.50" : "muted.100"}
-            borderRadius={12}
+            bg={isDark ? "muted.50" : "muted.50"}
+            borderRadius={14}
+            shadow={1}
             px={4}
             py={3}
             alignItems="center"
@@ -525,12 +529,12 @@ const TransactionsScreen: React.FC<TransactionsScreenProps> = ({ navigation }) =
         </Pressable>
 
         {/* Filter */}
-        <HStack bg={user.theme === "dark" ? "muted.50" : "muted.100"} borderRadius={12} p={1} mb={4}>
+        <HStack bg={user.theme === "dark" ? "muted.50" : "muted.50"} borderRadius={14} shadow={1} p={1} mb={4}>
           {(["all", "expense", "income"] as Filter[]).map((f) => {
             const active = filter === f;
             return (
               <Pressable key={f} flex={1} onPress={() => setFilter(f)}>
-                <View py={2} borderRadius={10} alignItems="center" bg={active ? "purple.700" : "transparent"}>
+                <View py={2} borderRadius={12} alignItems="center" bg={active ? "purple.700" : "transparent"}>
                   <Text fontFamily="SourceBold" fontSize={14} color={active ? "white" : "muted.500"}>
                     {f === "all" ? "All" : f === "expense" ? "Expenses" : "Income"}
                   </Text>
