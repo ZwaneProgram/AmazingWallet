@@ -204,7 +204,7 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                       py={2.5}
                       borderRadius={13}
                       alignItems="center"
-                      bg={active ? (t === "income" ? "emerald.500" : "purple.700") : "transparent"}>
+                      bg={active ? (t === "income" ? "emerald.500" : "danger.500") : "transparent"}>
                       <Text
                         fontFamily="SourceBold"
                         fontSize={16}
@@ -233,31 +233,6 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
               </VStack>
             ) : null}
 
-            {/* Date picker — defaults to today, allows back-dating */}
-            <Pressable width="100%" onPress={() => setDateOpen(true)} _pressed={{ opacity: 0.6 }}>
-              <HStack
-                alignItems="center"
-                justifyContent="space-between"
-                borderWidth={1.5}
-                borderColor="muted.200"
-                borderRadius={12}
-                px={4}
-                py={3}>
-                <HStack alignItems="center" space={2}>
-                  <Ionicons name="calendar-outline" size={20} color={accentColor} />
-                  <Text fontFamily="SourceSansPro" fontSize={16} color={muted[700]}>
-                    Date
-                  </Text>
-                </HStack>
-                <HStack alignItems="center" space={1}>
-                  <Text fontFamily="SourceBold" fontSize={16} color={accentColor}>
-                    {dateLabel}
-                  </Text>
-                  <Ionicons name="chevron-down" size={18} color={accentColor} />
-                </HStack>
-              </HStack>
-            </Pressable>
-
             <VStack space={4} alignItems="center" width="100%">
               <Text fontFamily="SourceBold" fontSize={32} textAlign="center">
                 {isIncome ? "Add new income" : "Add new expense"}
@@ -269,8 +244,9 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                 type="text"
                 value={values.amount}
                 onChangeText={(e: string) => handleValue("amount", e)}
-                label={`Enter amount ${user.symbol ?? ""}`}
+                label={`AMOUNT${user.symbol ? ` (${user.symbol})` : ""}`}
                 placeholder="0"
+                fontSize={22}
                 borderRadius={12}
                 borderColor="muted.100"
                 InputRightElement={
@@ -446,6 +422,31 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                   )}
                 </>
               )}
+
+              {/* Date picker — defaults to today, allows back-dating */}
+              <Pressable width="100%" onPress={() => setDateOpen(true)} _pressed={{ opacity: 0.6 }}>
+                <HStack
+                  alignItems="center"
+                  justifyContent="space-between"
+                  borderWidth={1.5}
+                  borderColor="muted.200"
+                  borderRadius={12}
+                  px={4}
+                  py={3}>
+                  <HStack alignItems="center" space={2}>
+                    <Ionicons name="calendar-outline" size={20} color={accentColor} />
+                    <Text fontFamily="SourceSansPro" fontSize={16} color={muted[700]}>
+                      Date
+                    </Text>
+                  </HStack>
+                  <HStack alignItems="center" space={1}>
+                    <Text fontFamily="SourceBold" fontSize={16} color={accentColor}>
+                      {dateLabel}
+                    </Text>
+                    <Ionicons name="chevron-down" size={18} color={accentColor} />
+                  </HStack>
+                </HStack>
+              </Pressable>
 
               <EZInput
                 style={authInput}

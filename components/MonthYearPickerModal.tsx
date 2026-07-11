@@ -48,14 +48,6 @@ const MonthYearPickerModal: React.FC<Props> = ({
       <Modal.Content maxWidth="360px" width="90%" bg={isDark ? "#1f2937" : "white"}>
         <Modal.Body>
           <VStack space={4}>
-            <HStack justifyContent="flex-end">
-              <TouchableOpacity
-                onPress={onClose}
-                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
-                <AntDesign name="close" size={22} color={isDark ? "#ffffff" : "#262626"} />
-              </TouchableOpacity>
-            </HStack>
-
             <HStack alignItems="center" justifyContent="space-between" px={2}>
               <TouchableOpacity
                 onPress={() => setViewYear((y) => y - 1)}
@@ -72,42 +64,20 @@ const MonthYearPickerModal: React.FC<Props> = ({
               </TouchableOpacity>
             </HStack>
 
-            {onSelectAll && (
-              <Pressable
-                onPress={() => {
-                  onSelectAll(viewYear);
-                  onClose();
-                }}>
-                <Box
-                  height="44px"
-                  borderRadius={12}
-                  justifyContent="center"
-                  alignItems="center"
-                  bg={allActive && viewYear === year ? "purple.700" : isDark ? "#374151" : "muted.100"}>
-                  <Text
-                    fontFamily="SourceBold"
-                    fontSize={14}
-                    color={allActive && viewYear === year ? "white" : "muted.700"}>
-                    All {viewYear}
-                  </Text>
-                </Box>
-              </Pressable>
-            )}
-
             <Box flexDirection="row" flexWrap="wrap" justifyContent="space-between">
               {MONTHS.map((m) => {
                 const active = !allActive && m === month && viewYear === year;
                 return (
-                  <Pressable key={m} width="23%" mb={3} onPress={() => pick(m)}>
+                  <Pressable key={m} width="31%" mb={3} onPress={() => pick(m)}>
                     <Box
-                      height="44px"
-                      borderRadius={12}
+                      height="52px"
+                      borderRadius={14}
                       justifyContent="center"
                       alignItems="center"
                       bg={active ? "purple.700" : isDark ? "#374151" : "muted.100"}>
                       <Text
                         fontFamily="SourceBold"
-                        fontSize={14}
+                        fontSize={15}
                         color={active ? "white" : "muted.700"}>
                         {m.slice(0, 3)}
                       </Text>
@@ -116,6 +86,30 @@ const MonthYearPickerModal: React.FC<Props> = ({
                 );
               })}
             </Box>
+
+            {onSelectAll && (
+              <Pressable
+                onPress={() => {
+                  onSelectAll(viewYear);
+                  onClose();
+                }}>
+                <Box
+                  height="52px"
+                  borderRadius={14}
+                  justifyContent="center"
+                  alignItems="center"
+                  borderWidth={1.5}
+                  borderColor={accent[700]}
+                  bg={allActive && viewYear === year ? accent[700] : "transparent"}>
+                  <Text
+                    fontFamily="SourceBold"
+                    fontSize={16}
+                    color={allActive && viewYear === year ? "white" : accent[700]}>
+                    All year
+                  </Text>
+                </Box>
+              </Pressable>
+            )}
           </VStack>
         </Modal.Body>
       </Modal.Content>
