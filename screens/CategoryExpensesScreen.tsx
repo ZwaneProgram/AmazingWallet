@@ -12,6 +12,7 @@ import COLORS from "../colors";
 import { AppStackParamList } from "../interfaces/Navigation";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
+import { useAccent } from "../hooks/useAccent";
 
 type Props = {
   navigation: NavigationProp<ParamListBase>;
@@ -22,6 +23,7 @@ const CategoryExpensesScreen: React.FC<Props> = ({ navigation, route }) => {
   const { params } = route;
   const { expenses, name } = params;
   const { theme } = useSelector((state: RootState) => state.user);
+  const accent = useAccent();
   const {
     colors: { muted },
   } = useTheme();
@@ -48,8 +50,16 @@ const CategoryExpensesScreen: React.FC<Props> = ({ navigation, route }) => {
   return (
     <SafeAreaView>
       <StatusBar style={theme === "dark" ? "light" : "dark"} />
-      <ScrollView contentContainerStyle={{ padding: 24 }}>
-        {expenses.map((expense: Expense, index: number) => {
+      <ScrollView contentContainerStyle={{ padding: 24, width: "100%", maxWidth: 640, alignSelf: "center" }}>
+        {[...expenses]
+          .sort((a: any, b: any) => {
+            if (a.payDate !== b.payDate) return a.payDate < b.payDate ? 1 : -1;
+            const ac = a.createdAt ?? "";
+            const bc = b.createdAt ?? "";
+            if (ac !== bc) return ac < bc ? 1 : -1;
+            return (b.id ?? 0) - (a.id ?? 0);
+          })
+          .map((expense: Expense, index: number) => {
           const parsedDate = moment(expense.payDate, "YYYY-MM-DD");
           const formattedDate = parsedDate.format("D MMMM");
 
@@ -72,7 +82,7 @@ const CategoryExpensesScreen: React.FC<Props> = ({ navigation, route }) => {
                       left="30px"
                       top="50%"
                       borderLeftWidth={1}
-                      borderColor={expense.color}
+                      borderColor={expense.color || accent[700]}
                       height="100%"
                       zIndex={1}
                     />
@@ -84,7 +94,7 @@ const CategoryExpensesScreen: React.FC<Props> = ({ navigation, route }) => {
                     borderWidth="3px"
                     borderRadius={9999}
                     zIndex={9}
-                    borderColor={expense.color}
+                    borderColor={expense.color || accent[700]}
                     position={"relative"}
                     backgroundColor={COLORS.MUTED[50]}
                   />

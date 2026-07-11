@@ -1,0 +1,353 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>AmazingWallet — คำถามเรื่องฟีเจอร์</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --accent: #7e22ce;
+    --accent-dark: #581c87;
+    --accent-soft: #f5edff;
+    --accent-border: #e3d3f7;
+    --ink: #1f2430;
+    --muted: #6b7280;
+    --line: #e7e9ee;
+    --bg: #f4f1f8;
+    --card: #ffffff;
+    --ok: #16a34a;
+    --warn: #b45309;
+    --warn-bg: #fff7ed;
+    --warn-border: #fed7aa;
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body {
+    margin: 0;
+    font-family: 'Sarabun', system-ui, -apple-system, 'Segoe UI', sans-serif;
+    color: var(--ink);
+    background: var(--bg);
+    line-height: 1.6;
+    font-size: 16px;
+  }
+  .wrap { max-width: 720px; margin: 0 auto; padding: 0 16px 140px; }
+
+  header {
+    background: linear-gradient(135deg, var(--accent) 0%, var(--accent-dark) 100%);
+    color: #fff;
+    padding: 28px 20px 24px;
+    border-radius: 0 0 22px 22px;
+    box-shadow: 0 8px 24px rgba(88,28,135,.25);
+  }
+  header .inner { max-width: 720px; margin: 0 auto; }
+  header h1 { margin: 0 0 6px; font-size: 22px; font-weight: 700; }
+  header p { margin: 0; opacity: .92; font-size: 15px; }
+  .pill {
+    display: inline-block; margin-bottom: 12px;
+    background: rgba(255,255,255,.18); border: 1px solid rgba(255,255,255,.35);
+    padding: 4px 12px; border-radius: 999px; font-size: 13px; font-weight: 600;
+  }
+
+  .intro {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 16px; padding: 16px 18px; margin: 18px 0 22px;
+    font-size: 15px; color: var(--muted);
+  }
+  .intro b { color: var(--ink); }
+
+  .card {
+    background: var(--card); border: 1px solid var(--line);
+    border-radius: 18px; padding: 20px; margin-bottom: 18px;
+    box-shadow: 0 2px 8px rgba(31,36,48,.04);
+  }
+  .card h2 {
+    margin: 0 0 4px; font-size: 18px; font-weight: 700;
+    display: flex; align-items: center; gap: 10px;
+  }
+  .tag {
+    background: var(--accent-soft); color: var(--accent-dark);
+    border: 1px solid var(--accent-border);
+    font-size: 13px; font-weight: 700; padding: 2px 10px; border-radius: 8px;
+    white-space: nowrap;
+  }
+  .desc { color: var(--muted); font-size: 15px; margin: 6px 0 14px; }
+  .q { font-weight: 600; margin: 16px 0 10px; }
+  .q .small { color: var(--muted); font-weight: 400; font-size: 14px; display:block; }
+
+  /* selectable option cards */
+  .opt {
+    display: flex; gap: 12px; align-items: flex-start;
+    border: 1.5px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; margin-bottom: 10px; cursor: pointer;
+    transition: all .15s ease;
+  }
+  .opt:hover { border-color: var(--accent-border); background: #faf7ff; }
+  .opt input { margin-top: 4px; width: 18px; height: 18px; accent-color: var(--accent); flex-shrink: 0; }
+  .opt .label { font-weight: 600; }
+  .opt .sub { color: var(--muted); font-size: 14px; font-weight: 400; }
+  .opt input:checked + .body .label { color: var(--accent-dark); }
+  .opt:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+  .badge-easy { color: var(--ok); font-weight: 700; }
+  .badge-mid  { color: #d97706; font-weight: 700; }
+  .badge-hard { color: #dc2626; font-weight: 700; }
+
+  textarea {
+    width: 100%; border: 1.5px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; font-family: inherit; font-size: 15px; resize: vertical;
+    min-height: 70px; margin-top: 4px; color: var(--ink);
+  }
+  textarea:focus { outline: none; border-color: var(--accent); }
+
+  .note {
+    background: var(--warn-bg); border: 1px solid var(--warn-border);
+    color: var(--warn); border-radius: 12px; padding: 12px 14px;
+    font-size: 14px; margin: 12px 0; font-weight: 500;
+  }
+
+  /* sticky footer */
+  .bar {
+    position: fixed; left: 0; right: 0; bottom: 0;
+    background: rgba(255,255,255,.92); backdrop-filter: blur(8px);
+    border-top: 1px solid var(--line); padding: 14px 16px;
+    display: flex; gap: 10px; justify-content: center;
+    box-shadow: 0 -4px 16px rgba(31,36,48,.06);
+  }
+  .bar .inner { max-width: 720px; width: 100%; display: flex; gap: 10px; }
+  button {
+    flex: 1; border: none; border-radius: 12px; padding: 14px;
+    font-family: inherit; font-size: 16px; font-weight: 700; cursor: pointer;
+  }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:active { background: var(--accent-dark); }
+  .btn-ghost { background: var(--accent-soft); color: var(--accent-dark); border: 1.5px solid var(--accent-border); flex: 0 0 auto; padding: 14px 18px; }
+
+  /* result modal */
+  .overlay {
+    position: fixed; inset: 0; background: rgba(15,12,25,.55);
+    display: none; align-items: center; justify-content: center; padding: 18px; z-index: 50;
+  }
+  .overlay.show { display: flex; }
+  .modal {
+    background: #fff; border-radius: 18px; width: 100%; max-width: 560px;
+    max-height: 86vh; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .modal h3 { margin: 0; padding: 18px 20px 8px; font-size: 18px; }
+  .modal .sub2 { padding: 0 20px; color: var(--muted); font-size: 14px; margin-bottom: 10px; }
+  .modal pre {
+    margin: 0 20px; padding: 14px; background: #f6f4fb; border: 1px solid var(--line);
+    border-radius: 12px; overflow: auto; flex: 1; white-space: pre-wrap; word-break: break-word;
+    font-family: inherit; font-size: 14px; line-height: 1.55;
+  }
+  .modal .actions { padding: 16px 20px; display: flex; gap: 10px; }
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: var(--ink); color: #fff; padding: 10px 18px; border-radius: 999px;
+    font-size: 14px; font-weight: 600; opacity: 0; transition: opacity .2s; pointer-events: none; z-index: 60;
+  }
+  .toast.show { opacity: 1; }
+  .field-name {
+    width: 100%; border: 1.5px solid var(--line); border-radius: 12px;
+    padding: 12px 14px; font-family: inherit; font-size: 15px; margin-bottom: 4px;
+  }
+  .field-name:focus { outline: none; border-color: var(--accent); }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="inner">
+    <span class="pill">AmazingWallet</span>
+    <h1>ขอความเห็นเรื่องฟีเจอร์เพิ่มเติม 🙏</h1>
+    <p>มี 4 ฟีเจอร์ที่อยากขอรายละเอียดก่อนเริ่มทำ จะได้ตรงกับที่ต้องการจริงๆ ครับ เลือกตอบและพิมพ์เพิ่มได้เลย</p>
+  </div>
+</header>
+
+<div class="wrap">
+
+  <div class="intro">
+    วิธีตอบ: เลือกข้อที่ตรงใจในแต่ละหัวข้อ และพิมพ์เพิ่มในช่อง "อื่นๆ / คำถาม" ได้ตามสบาย
+    เสร็จแล้วเลื่อนลงล่างสุด กด <b>"สร้างคำตอบ"</b> แล้ว <b>คัดลอกส่งกลับมา</b>ได้เลยครับ
+  </div>
+
+  <input id="clientName" class="field-name" type="text" placeholder="ชื่อผู้ตอบ (ไม่บังคับ)" />
+
+  <!-- ================= ข้อ 6 ================= -->
+  <div class="card" data-feature="ข้อ 6 — เลือกวันที่ + วันเริ่มต้นสัปดาห์/เดือน">
+    <h2><span class="tag">ข้อ 6</span> เลือกวันที่ + วันเริ่มต้นสัปดาห์/เดือน</h2>
+    <p class="desc">ตอนนี้เข้าใจว่ามี 2 ส่วนย่อย รบกวนช่วยยืนยันครับ</p>
+
+    <div class="q">6.1 คำว่า "เลือกวันที่" หมายถึงอะไรครับ?</div>
+    <label class="opt"><input type="radio" name="q6_1" value="เลือกวันที่ย้อนหลังตอนเพิ่มรายการ"><span class="body"><span class="label">เลือกวันที่ย้อนหลังได้ตอนเพิ่มรายรับ/รายจ่าย</span><span class="sub">เช่น วันนี้บันทึกของเมื่อวาน หรือของวันก่อนๆ</span></span></label>
+    <label class="opt"><input type="radio" name="q6_1" value="กรองดูรายการตามช่วงวันที่ที่เลือกเอง"><span class="body"><span class="label">กรอง/ดูรายการตามช่วงวันที่ที่เลือกเอง</span><span class="sub">เช่น ดูเฉพาะ 1–15 ของเดือน</span></span></label>
+    <label class="opt"><input type="radio" name="q6_1" value="ทั้งสองอย่าง"><span class="body"><span class="label">อยากได้ทั้งสองอย่าง</span></span></label>
+
+    <div class="q">6.2 "วันเริ่มต้นของสัปดาห์/เดือน" อยากให้ทำงานแบบไหน? <span class="small">(สำคัญมาก เพราะ 2 แบบนี้ต่างกันเยอะ)</span></div>
+    <label class="opt"><input type="radio" name="q6_2" value="แค่เปลี่ยนหน้าตาปฏิทิน (อาทิตย์/จันทร์)"><span class="body"><span class="label">แค่เปลี่ยนหน้าตาปฏิทิน</span><span class="sub">ให้สัปดาห์เริ่มวันอาทิตย์ หรือวันจันทร์ (แค่การแสดงผล ยอดสรุปไม่เปลี่ยน)</span></span></label>
+    <label class="opt"><input type="radio" name="q6_2" value="เปลี่ยนรอบการคิดเงินทั้งเดือน (เช่น เริ่มวันที่ 25)"><span class="body"><span class="label">เปลี่ยนรอบการคิดเงินทั้งเดือน</span><span class="sub">เช่น เงินเดือนออกวันที่ 25 → "เดือน" ของแอปเริ่มนับ 25 ถึง 24 เดือนถัดไป แล้วยอดสรุป/งบทั้งหมดคิดตามรอบนี้</span></span></label>
+
+    <div class="q">อื่นๆ / คำถาม เกี่ยวกับข้อ 6</div>
+    <textarea data-extra placeholder="พิมพ์เพิ่มเติมได้ที่นี่..."></textarea>
+  </div>
+
+  <!-- ================= ข้อ 19 ================= -->
+  <div class="card" data-feature="ข้อ 19 — ไม่นับกระเป๋าในยอดรวม">
+    <h2><span class="tag">ข้อ 19</span> ไม่นับกระเป๋าเงินนี้ในยอดรวม</h2>
+    <p class="desc">เข้าใจว่า: อยากมีสวิตช์ในกระเป๋าแต่ละใบ เลือกได้ว่าจะนับรวมในยอดรวมทั้งหมดหรือไม่ ถูกไหมครับ?</p>
+
+    <div class="q">ใช่แบบที่เข้าใจไหมครับ?</div>
+    <label class="opt"><input type="radio" name="q19" value="ใช่ — มีสวิตช์เปิด/ปิดการนับรวมในแต่ละกระเป๋า"><span class="body"><span class="label">ใช่ ตรงแล้ว</span><span class="sub">กระเป๋าที่ปิด = หายจากยอดรวมใหญ่ แต่ยังเปิดดู/ใช้งานได้ปกติ</span></span></label>
+    <label class="opt"><input type="radio" name="q19" value="ไม่ใช่ — จะอธิบายเพิ่มในช่องด้านล่าง"><span class="body"><span class="label">ไม่ใช่ จะอธิบายเพิ่ม</span></span></label>
+
+    <div class="q">ใช้กับกรณีไหนครับ? <span class="small">(เช่น กระเป๋าเงินเก็บออม / เงินที่ไม่อยากรวมกับเงินใช้จ่าย)</span></div>
+    <textarea data-extra placeholder="พิมพ์ตัวอย่างการใช้งาน หรือคำอธิบายเพิ่มเติม..."></textarea>
+  </div>
+
+  <!-- ================= ข้อ 11 ================= -->
+  <div class="card" data-feature="ข้อ 11 — แยกกระเป๋าตามหมวดหมู่">
+    <h2><span class="tag">ข้อ 11</span> แยกกระเป๋าเงินตามหมวดหมู่</h2>
+    <p class="desc">ข้อนี้ยังไม่ค่อยเข้าใจ ขอรายละเอียดหน่อยครับ 🙏 หมายถึงแบบไหน?</p>
+
+    <label class="opt"><input type="radio" name="q11" value="(ก) กระเป๋า 1 ใบ ผูกกับหมวดเฉพาะ"><span class="body"><span class="label">(ก) กระเป๋า 1 ใบ ผูกกับหมวดเฉพาะ</span><span class="sub">เช่น กระเป๋า "ค่ากิน" รับเฉพาะรายจ่ายหมวดอาหาร</span></span></label>
+    <label class="opt"><input type="radio" name="q11" value="(ข) เงินในกระเป๋าใบเดียว แบ่งเป็นก้อนๆ ตามหมวด"><span class="body"><span class="label">(ข) เงินในกระเป๋าใบเดียว แบ่งเป็นก้อนตามหมวด</span><span class="sub">เช่น ในกระเป๋ามี 5,000 → กิน 2,000 / เดินทาง 1,000 / อื่นๆ 2,000</span></span></label>
+    <label class="opt"><input type="radio" name="q11" value="(ค) ระบบแบ่งงบ (budget) ในกระเป๋าตามหมวด"><span class="body"><span class="label">(ค) ระบบแบ่งงบในกระเป๋าตามหมวด</span><span class="sub">ตั้งงบแต่ละหมวดในกระเป๋านั้นๆ</span></span></label>
+    <label class="opt"><input type="radio" name="q11" value="(ง) อื่นๆ — อธิบายด้านล่าง"><span class="body"><span class="label">(ง) อื่นๆ จะอธิบายเพิ่ม</span></span></label>
+
+    <div class="q">อธิบายเพิ่ม / มีแอปตัวอย่างที่ทำคล้ายๆ ไหมครับ? <span class="small">(ถ้ามีรูปหน้าจอตัวอย่างจะดีมาก ส่งมาทางแชทได้)</span></div>
+    <textarea data-extra placeholder="อธิบายสิ่งที่ต้องการ หรือชื่อแอปตัวอย่าง..."></textarea>
+  </div>
+
+  <!-- ================= ข้อ 15 ================= -->
+  <div class="card" data-feature="ข้อ 15 — ปุ่มลัด">
+    <h2><span class="tag">ข้อ 15</span> ปุ่มลัดเพิ่มรายการแบบเร็ว</h2>
+    <p class="desc">เข้าใจว่า: อยากมีปุ่มลัดกดเพิ่มรายรับ/รายจ่ายเร็วๆ โดยไม่ต้องเปิดแอปทั้งหมด</p>
+
+    <div class="note">⚠️ ข้อจำกัด: ฟีเจอร์นี้ต้อง build แอปแบบเต็ม (native) ทำในโหมดทดสอบปกติไม่ได้ จึงใช้เวลามากกว่าและซับซ้อนกว่าข้ออื่น รบกวนเลือกแบบที่ต้องการครับ</div>
+
+    <label class="opt"><input type="radio" name="q15" value="แบบ 1 — กดค้างที่ไอคอนแอป (ง่ายสุด แนะนำ)"><span class="body"><span class="label">แบบ 1 · กดค้างที่ไอคอนแอป <span class="badge-easy">🟢 ง่ายสุด</span></span><span class="sub">กดค้างไอคอนแอป → เด้งเมนู "เพิ่มรายจ่าย / เพิ่มรายรับ" (เหมือนกดค้างไอคอนแอปทั่วไป) — เร็ว เสถียร แนะนำ</span></span></label>
+    <label class="opt"><input type="radio" name="q15" value="แบบ 2 — ปุ่มค้างบนแถบแจ้งเตือน (ปานกลาง)"><span class="body"><span class="label">แบบ 2 · ปุ่มค้างบนแถบแจ้งเตือน <span class="badge-mid">🟡 ปานกลาง</span></span><span class="sub">มีแจ้งเตือนค้างบนแถบ notification พร้อมปุ่ม "＋ รายจ่าย / ＋ รายรับ"</span></span></label>
+    <label class="opt"><input type="radio" name="q15" value="แบบ 3 — ปุ่มในแถบตั้งค่าด่วน Quick Settings (ยากสุด)"><span class="body"><span class="label">แบบ 3 · ปุ่มในแถบตั้งค่าด่วน <span class="badge-hard">🔴 ยากสุด</span></span><span class="sub">ปุ่มในแผงปัดลงจากบนจอ (ที่เดียวกับ Wi-Fi/Bluetooth) — ใช้เวลามากสุด</span></span></label>
+    <label class="opt"><input type="radio" name="q15" value="ไม่เอาแล้ว / เก็บไว้ทำทีหลัง"><span class="body"><span class="label">ขอข้ามไปก่อน / ทำทีหลัง</span></span></label>
+
+    <div class="q">อื่นๆ / คำถาม เกี่ยวกับข้อ 15</div>
+    <textarea data-extra placeholder="พิมพ์เพิ่มเติม หรือแปะลิงก์รูปตัวอย่าง..."></textarea>
+  </div>
+
+  <!-- ================= ทั่วไป ================= -->
+  <div class="card" data-feature="คำถาม / ข้อเสนอแนะเพิ่มเติม">
+    <h2>💬 คำถาม / ข้อเสนอแนะอื่นๆ</h2>
+    <p class="desc">มีอะไรอยากถาม อยากเพิ่ม หรืออยากแก้ บอกได้เลยครับ</p>
+    <textarea data-extra placeholder="พิมพ์ที่นี่ได้เลย..."></textarea>
+  </div>
+
+</div>
+
+<div class="bar">
+  <div class="inner">
+    <button class="btn-primary" onclick="generate()">✅ สร้างคำตอบ</button>
+  </div>
+</div>
+
+<!-- result modal -->
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h3>คำตอบของคุณ 🎉</h3>
+    <div class="sub2">กดปุ่มด้านล่างเพื่อคัดลอก แล้วส่งกลับมาทางแชท/LINE ได้เลยครับ</div>
+    <pre id="result"></pre>
+    <div class="actions">
+      <button class="btn-primary" onclick="copyResult()">📋 คัดลอกคำตอบ</button>
+      <button class="btn-ghost" onclick="downloadResult()">💾 ดาวน์โหลด</button>
+    </div>
+    <div class="actions" style="padding-top:0">
+      <button class="btn-ghost" style="flex:1" onclick="closeModal()">ปิด / แก้ไขต่อ</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast">คัดลอกแล้ว ✓</div>
+
+<script>
+  function getRadio(name) {
+    const el = document.querySelector('input[name="'+name+'"]:checked');
+    return el ? el.value : '— (ยังไม่ได้เลือก) —';
+  }
+
+  function buildText() {
+    const name = document.getElementById('clientName').value.trim();
+    let out = '📋 คำตอบเรื่องฟีเจอร์ — AmazingWallet\n';
+    if (name) out += 'จาก: ' + name + '\n';
+    out += '──────────────────────────\n\n';
+
+    const extras = document.querySelectorAll('textarea[data-extra]');
+
+    out += '🔹 ข้อ 6 — เลือกวันที่ + วันเริ่มต้นสัปดาห์/เดือน\n';
+    out += '  • 6.1 "เลือกวันที่": ' + getRadio('q6_1') + '\n';
+    out += '  • 6.2 วันเริ่มต้น: ' + getRadio('q6_2') + '\n';
+    if (extras[0].value.trim()) out += '  • เพิ่มเติม: ' + extras[0].value.trim() + '\n';
+    out += '\n';
+
+    out += '🔹 ข้อ 19 — ไม่นับกระเป๋าในยอดรวม\n';
+    out += '  • ' + getRadio('q19') + '\n';
+    if (extras[1].value.trim()) out += '  • กรณีใช้งาน: ' + extras[1].value.trim() + '\n';
+    out += '\n';
+
+    out += '🔹 ข้อ 11 — แยกกระเป๋าตามหมวดหมู่\n';
+    out += '  • ' + getRadio('q11') + '\n';
+    if (extras[2].value.trim()) out += '  • อธิบายเพิ่ม: ' + extras[2].value.trim() + '\n';
+    out += '\n';
+
+    out += '🔹 ข้อ 15 — ปุ่มลัด\n';
+    out += '  • ' + getRadio('q15') + '\n';
+    if (extras[3].value.trim()) out += '  • เพิ่มเติม: ' + extras[3].value.trim() + '\n';
+    out += '\n';
+
+    if (extras[4].value.trim()) {
+      out += '🔹 คำถาม/ข้อเสนอแนะอื่นๆ\n';
+      out += '  • ' + extras[4].value.trim() + '\n';
+    }
+
+    return out.trim();
+  }
+
+  function generate() {
+    document.getElementById('result').textContent = buildText();
+    document.getElementById('overlay').classList.add('show');
+  }
+  function closeModal() {
+    document.getElementById('overlay').classList.remove('show');
+  }
+  function showToast(msg) {
+    const t = document.getElementById('toast');
+    t.textContent = msg; t.classList.add('show');
+    setTimeout(() => t.classList.remove('show'), 1600);
+  }
+  function copyResult() {
+    const text = document.getElementById('result').textContent;
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(text).then(() => showToast('คัดลอกแล้ว ✓'))
+        .catch(() => legacyCopy(text));
+    } else { legacyCopy(text); }
+  }
+  function legacyCopy(text) {
+    const ta = document.createElement('textarea');
+    ta.value = text; document.body.appendChild(ta); ta.select();
+    try { document.execCommand('copy'); showToast('คัดลอกแล้ว ✓'); }
+    catch(e){ showToast('คัดลอกไม่สำเร็จ ลองเลือกข้อความเอง'); }
+    document.body.removeChild(ta);
+  }
+  function downloadResult() {
+    const text = document.getElementById('result').textContent;
+    const blob = new Blob([text], { type: 'text/plain;charset=utf-8' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'คำตอบฟีเจอร์-AmazingWallet.txt';
+    a.click(); URL.revokeObjectURL(a.href);
+    showToast('ดาวน์โหลดแล้ว ✓');
+  }
+  document.getElementById('overlay').addEventListener('click', e => {
+    if (e.target.id === 'overlay') closeModal();
+  });
+</script>
+</body>
+</html>

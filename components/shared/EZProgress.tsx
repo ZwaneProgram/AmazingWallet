@@ -50,7 +50,7 @@ const EZProgress: React.FC<EZProgresssProps> = ({ height, value, maxValue, color
       <AnimatedView
         style={{
           transform: [{ translateX: animatedValue }],
-          backgroundColor: color,
+          backgroundColor: color || "#7e22ce",
         }}
         width="100%"
         height={height}

@@ -5,4 +5,8 @@ export interface Income {
   amount: number;
   description?: string;
   payDate?: any;
+  categoryId?: number;
+  // resolved from the (shared) category for display
+  name?: string;
+  color?: string;
 }

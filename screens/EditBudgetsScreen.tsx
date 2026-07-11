@@ -15,7 +15,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { Budget } from "../interfaces/Budget";
 import EZButton from "../components/shared/EZButton";
-import COLORS from "../colors";
+import { useAccent } from "../hooks/useAccent";
 import { StatusBar } from "expo-status-bar";
 import {
   categoriesSelector,
@@ -31,6 +31,7 @@ interface EditBudgetScreenProps {
 
 const EditBudgetScreen: React.FC<EditBudgetScreenProps> = ({ navigation }) => {
   const user = useSelector((state: RootState) => state.user);
+  const accent = useAccent();
   const [buttonLoading, setButtonLoading] = useState<boolean>(false);
   const [budgets, setBudgets] = useState<any>([]);
   const dispatch = useDispatch();
@@ -96,7 +97,7 @@ const EditBudgetScreen: React.FC<EditBudgetScreenProps> = ({ navigation }) => {
   const budgetValues: Budget[] = [];
 
   const budgetCategories = categories!
-    .filter((category: Category) => !category.parentId)
+    .filter((category: Category) => !category.parentId && (category.type ?? "expense") === "expense")
     .map((category: Category) => {
     const budget = monthlyBudgets.find((item: Budget) => item.category === category.name);
 
@@ -121,9 +122,9 @@ const EditBudgetScreen: React.FC<EditBudgetScreenProps> = ({ navigation }) => {
       <KeyboardAwareScrollView
         showsVerticalScrollIndicator={false}
         style={{ backgroundColor: user.theme === "dark" ? "#111827" : "#ffffff" }}
-        contentContainerStyle={{ flexGrow: 1 }}>
+        contentContainerStyle={{ flexGrow: 1, paddingBottom: 40 }}>
 
-        <VStack mt={10} space={10} px={7}>
+        <VStack mt={10} space={6} px={7} w="100%" maxW="560px" alignSelf="center">
           <TouchableOpacity
             style={{
               position: "absolute",
@@ -182,7 +183,7 @@ const EditBudgetScreen: React.FC<EditBudgetScreenProps> = ({ navigation }) => {
             height="44px"
             _text={{ fontFamily: "SourceSansPro", fontSize: 17 }}
             _pressed={{
-              backgroundColor: COLORS.PURPLE[700],
+              backgroundColor: accent[700],
               opacity: 0.7,
             }}>
             SAVE

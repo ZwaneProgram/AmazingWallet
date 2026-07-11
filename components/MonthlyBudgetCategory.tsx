@@ -9,6 +9,7 @@ import COLORS from "../colors";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { categoriesSelector } from "../redux/expensesReducers";
+import { useAccent } from "../hooks/useAccent";
 
 interface MonthlyBudgetCategoryProps {
   budget: Budget;
@@ -17,6 +18,9 @@ interface MonthlyBudgetCategoryProps {
 
 const MonthlyBudgetCategory: React.FC<MonthlyBudgetCategoryProps> = ({ budget, monthlyTotal }) => {
   const { budget: amount, category, color } = budget;
+  const accent = useAccent();
+  // Guard against empty/undefined colors from the DB — "" is not a valid color.
+  const safeColor = color || accent[700];
   const user: any = useSelector((state: RootState) => state.user);
   const categories = useSelector(categoriesSelector);
   const iconKey = categories.find((c: Category) => c.name === category)?.icon;
@@ -38,7 +42,7 @@ const MonthlyBudgetCategory: React.FC<MonthlyBudgetCategoryProps> = ({ budget, m
     if (statusMessage) {
       return (
         <HStack pb={2} pl={4} alignItems="center" space={2}>
-          <AntDesign name="exclamationcircle" size={15} color={COLORS.DANGER[500]} />
+          <AntDesign name="exclamation-circle" size={15} color={COLORS.DANGER[500]} />
           <Text>{statusMessage}</Text>
         </HStack>
       );
@@ -65,7 +69,7 @@ const MonthlyBudgetCategory: React.FC<MonthlyBudgetCategoryProps> = ({ budget, m
             borderRadius={22}
             width="60px"
             height="60px"
-            style={{ backgroundColor: color }}
+            style={{ backgroundColor: safeColor }}
             justifyContent="center"
             alignItems="center">
             {renderCategoryIcon(iconKey, category, 24, muted[50])}
@@ -80,7 +84,7 @@ const MonthlyBudgetCategory: React.FC<MonthlyBudgetCategoryProps> = ({ budget, m
             {monthlyTotal.toFixed(2)} {user.symbol} /{" "}
             {Number.isInteger(amount) ? amount : amount.toFixed(2)} {user.symbol}
           </Text>
-          <EZProgress height="20px" maxValue={amount} value={monthlyTotal} color={color} />
+          <EZProgress height="20px" maxValue={amount} value={monthlyTotal} color={safeColor} />
         </VStack>
       </VStack>
       {/* {isAlmostExceeded() && (

@@ -1,4 +1,4 @@
-import { CONVERT_EXPENSES_CURRENCY, GET_MONTH_EXPENSES } from "../../constants/PostgresFunctions";
+import { CONVERT_EXPENSES_CURRENCY } from "../../constants/PostgresFunctions";
 import { EXPENSES } from "../../constants/Tables";
 import { Expense } from "../../interfaces/Expense";
 import { getCurrentDate } from "../../utils/getCurrentDate";
@@ -7,42 +7,60 @@ import { supabase } from "../supabase";
 // const startMonth = moment().startOf("month").format("YYYY-MM-DD");
 // const endMonth = moment().endOf("month").format("YYYY-MM-DD");
 
-const AddExpense = async (expense: Expense) => {
-  const { amount, categoryId, description, userId, walletId } = expense;
+// Returns the inserted row's id + date so callers can store it in Redux. Without
+// the id, a later edit/delete (which reconciles Redux by id) can't find the entry,
+// leaving Home's totals stale even after the DB row is gone.
+const AddExpense = async (expense: Expense): Promise<{ id: number; payDate: string }> => {
+  const { amount, categoryId, description, userId, walletId, payDate } = expense;
 
-  const currentDate = getCurrentDate();
+  // Use the caller-supplied date when back-dating; otherwise today.
+  const date = payDate || getCurrentDate();
 
-  await supabase.from("expenses").insert({
-    user_id: userId,
-    category_id: categoryId,
-    amount,
-    description,
-    date: currentDate,
-    wallet_id: walletId,
-  });
-
-  try {
-  } catch (error) {
-    if (error instanceof Error) {
-      console.log(error);
-    }
-  }
+  const { data, error } = await supabase
+    .from("expenses")
+    .insert({
+      user_id: userId,
+      category_id: categoryId,
+      amount,
+      description,
+      date,
+      wallet_id: walletId,
+    })
+    .select("id, date")
+    .single();
+  if (error) throw error;
+  return { id: data.id, payDate: data.date };
 };
 
+// Direct table select (not the get_month_expenses RPC) so each row carries its
+// real `id`. Redux reconciles edits/deletes by id, so without it Home's totals
+// went stale after a delete. Same shape incomes already use.
 const getMonthExpenses = async (userId: number, startOfMonth: string, endOfMonth: string, walletId: number) => {
   try {
-    const { data } = await supabase.rpc(GET_MONTH_EXPENSES, {
-      start_month: startOfMonth,
-      end_month: endOfMonth,
-      user_id: userId,
-      wallet_id: walletId,
-    });
+    const { data, error } = await supabase
+      .from(EXPENSES)
+      .select("id, amount, description, date, created_at, category_id, categories(name, color)")
+      .eq("user_id", userId)
+      .eq("wallet_id", walletId)
+      .gte("date", startOfMonth)
+      .lte("date", endOfMonth)
+      .order("date", { ascending: false });
 
-    return data;
+    if (error) throw error;
+
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      categoryId: row.category_id,
+      amount: row.amount,
+      description: row.description,
+      payDate: row.date,
+      createdAt: row.created_at,
+      name: row.categories?.name,
+      color: row.categories?.color,
+    }));
   } catch (error) {
-    if (error instanceof Error) {
-      console.log(error);
-    }
+    console.log("getMonthExpenses failed:", error);
+    return [];
   }
 };
 
@@ -105,18 +123,51 @@ const getAllExpenses = async (userId: number, walletId: number) => {
   }
 };
 
+// Same as getAllExpenses but across every wallet, tagging each row with its
+// wallet_id so the History screen can label rows by wallet.
+const getAllExpensesEveryWallet = async (userId: number) => {
+  try {
+    const { data, error } = await supabase
+      .from(EXPENSES)
+      .select("id, amount, description, date, created_at, category_id, wallet_id, categories(name, color)")
+      .eq("user_id", userId)
+      .order("date", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      amount: row.amount,
+      description: row.description,
+      payDate: row.date,
+      createdAt: row.created_at,
+      categoryId: row.category_id,
+      walletId: row.wallet_id,
+      name: row.categories?.name,
+      color: row.categories?.color,
+    }));
+  } catch (error) {
+    console.log("getAllExpensesEveryWallet failed:", error);
+    return [];
+  }
+};
+
 const updateExpense = async (
   id: number,
-  fields: { amount: number; description?: string; categoryId?: number }
+  fields: { amount: number; description?: string; categoryId?: number; walletId?: number }
 ) => {
-  const { error } = await supabase
-    .from(EXPENSES)
-    .update({
-      amount: fields.amount,
-      description: fields.description,
-      category_id: fields.categoryId,
-    })
-    .eq("id", id);
+  const update: Record<string, any> = {
+    amount: fields.amount,
+    description: fields.description,
+    category_id: fields.categoryId,
+  };
+  if (fields.walletId != null) {
+    update.wallet_id = fields.walletId;
+  }
+
+  const { error } = await supabase.from(EXPENSES).update(update).eq("id", id);
 
   if (error) {
     throw error;
@@ -137,6 +188,7 @@ export const ExpenseService = {
   convertExpensesCurrency,
   removeUserExpenses,
   getAllExpenses,
+  getAllExpensesEveryWallet,
   updateExpense,
   deleteExpense,
 };

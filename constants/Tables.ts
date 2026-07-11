@@ -5,3 +5,6 @@ export const MONTHLY_BUDGETS = "monthly_budgets";
 export const EXPENSES = "expenses";
 export const INCOMES = "incomes";
 export const WALLETS = "wallets";
+export const WALLET_TRANSFERS = "wallet_transfers";
+export const WALLET_GROUPS = "wallet_groups";
+export const MONTHLY_COSTS = "monthly_costs";

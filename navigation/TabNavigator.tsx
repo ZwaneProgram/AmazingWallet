@@ -8,20 +8,27 @@ import GraphScreen from "../screens/GraphScreen";
 import TransactionsScreen from "../screens/TransactionsScreen";
 import SettingsScreen from "../screens/SettingsScreen";
 import { Animated, useWindowDimensions } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import EZHeaderBackground from "../components/shared/EZHeaderBackground";
 import { useSelector } from "react-redux";
 import { RootState } from "../redux/store";
+import { useAccent } from "../hooks/useAccent";
 
 const Tab = createBottomTabNavigator();
 
 const TabNavigator: React.FC<any> = () => {
   const { width } = useWindowDimensions();
+  const insets = useSafeAreaInsets();
   const tabOffsetValue = useRef(new Animated.Value(0)).current;
   const user = useSelector((state: RootState) => state.user);
 
   const tabWidth = width / 4;
+  // Real bar height = compact content height + the device's bottom inset
+  // (gesture bar / nav buttons). Keeps the bar slim on phones without an inset.
+  const tabBarHeight = TAB_BAR_HEIGHT + insets.bottom;
   const isDark = user.theme === "dark";
-  const activeColor = isDark ? COLORS.PURPLE[400] : COLORS.PURPLE[700];
+  const accent = useAccent();
+  const activeColor = isDark ? accent[400] : accent[700];
   const inactiveColor = isDark ? COLORS.MUTED[300] : COLORS.MUTED[500];
 
   const animateTabOffset = (index: number) => {
@@ -54,11 +61,24 @@ const TabNavigator: React.FC<any> = () => {
 
           tabBarLabelStyle: {
             fontFamily: "SourceBold",
+            fontSize: 11,
+            marginBottom: 2,
+          },
+          tabBarIconStyle: {
+            marginTop: 2,
           },
           tabBarStyle: {
-            height: TAB_BAR_HEIGHT,
+            height: tabBarHeight,
+            paddingTop: 6,
+            paddingBottom: insets.bottom + 4,
             backgroundColor: isDark ? "#1f2937" : "#ffffff",
-            borderTopColor: isDark ? "#374151" : "#e5e5e5",
+            borderTopWidth: 0,
+            // Soft lift so the bar reads as a floating surface, not a hairline.
+            shadowColor: "#0f172a",
+            shadowOffset: { width: 0, height: -6 },
+            shadowOpacity: isDark ? 0.3 : 0.07,
+            shadowRadius: 16,
+            elevation: 12,
           },
           headerBackground: () => <EZHeaderBackground />,
         }}>
@@ -133,12 +153,13 @@ const TabNavigator: React.FC<any> = () => {
       </Tab.Navigator>
       <Animated.View
         style={{
-          width: tabWidth,
-          height: 2,
-          backgroundColor: COLORS.PURPLE[700],
+          width: tabWidth * 0.42,
+          height: 4,
+          marginLeft: tabWidth * 0.29,
+          backgroundColor: activeColor,
           position: "absolute",
           borderRadius: 50,
-          bottom: 78,
+          bottom: tabBarHeight - 4,
           transform: [{ translateX: tabOffsetValue }],
         }}
       />

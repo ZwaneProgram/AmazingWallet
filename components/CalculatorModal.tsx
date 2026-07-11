@@ -3,6 +3,7 @@ import { Modal, VStack, HStack, Pressable, Text, View } from "native-base";
 import { Feather } from "@expo/vector-icons";
 import { useSelector } from "react-redux";
 import COLORS from "../colors";
+import { DEFAULT_ACCENT } from "../utils/accent";
 import { evaluateExpression, formatResult } from "../utils/calculator";
 import { RootState } from "../redux/store";
 
@@ -23,7 +24,7 @@ const CalculatorModal: React.FC<CalculatorModalProps> = ({
   isOpen,
   onClose,
   initialValue,
-  accentColor = COLORS.PURPLE[700],
+  accentColor = DEFAULT_ACCENT,
   onResult,
 }) => {
   const isDark = useSelector((state: RootState) => state.user.theme) === "dark";
@@ -41,6 +42,14 @@ const CalculatorModal: React.FC<CalculatorModalProps> = ({
   const press = (key: string) => {
     setExpression((prev) => {
       const last = prev.slice(-1);
+
+      if (key === "%") {
+        // percent is postfix: it needs a number in front and can't double up
+        if (prev === "" || OPERATORS.includes(last) || last === "%") {
+          return prev;
+        }
+        return prev + "%";
+      }
 
       if (OPERATORS.includes(key)) {
         if (prev === "") {
@@ -122,8 +131,7 @@ const CalculatorModal: React.FC<CalculatorModalProps> = ({
             <VStack space={2}>
               <HStack space={2}>
                 <Key label="C" onPress={clearAll} bg="rose.100" color={COLORS.DANGER[500]} />
-                <Key label="(" onPress={() => press("(")} bg={opBg} />
-                <Key label=")" onPress={() => press(")")} bg={opBg} />
+                <Key label="%" onPress={() => press("%")} bg={opBg} color={accentColor} flex={2} />
                 <Key
                   label={<Feather name="delete" size={22} color={isDark ? "#fafafa" : COLORS.MUTED[900]} />}
                   onPress={backspace}

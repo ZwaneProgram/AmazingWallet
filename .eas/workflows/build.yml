@@ -1,0 +1,20 @@
+name: Build release
+
+# Builds an installable Android APK (preview profile) ONLY when you push a
+# version tag like v1.0.1 — normal commits/pushes to main do NOT build.
+# You can also run it manually from the EAS dashboard or `eas workflow:run`.
+# The "production" EAS environment supplies the Supabase env vars;
+# scripts/write-env.js recreates .env at build time.
+on:
+  push:
+    tags:
+      - v*
+  workflow_dispatch:
+
+jobs:
+  build_android:
+    name: Build Android (preview APK)
+    type: build
+    params:
+      platform: android
+      profile: preview

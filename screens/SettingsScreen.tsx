@@ -1,6 +1,15 @@
 import { useNavigation } from "@react-navigation/native";
 import { useDispatch, useSelector } from "react-redux";
-import { removeCurrency, removeUser, setCurrency, setThemeAction } from "../redux/userReducer";
+import {
+  removeCurrency,
+  removeUser,
+  setCurrency,
+  setThemeAction,
+  setCycleStartDayAction,
+  setMonthAction,
+  setYearAction,
+} from "../redux/userReducer";
+import { getCurrentPeriod } from "../utils/period";
 import React, { useLayoutEffect, useState } from "react";
 import {
   View,
@@ -28,20 +37,25 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { AppStackParamList } from "../interfaces/Navigation";
 import { UserService } from "../api/services/UserService";
 import { StatusBar } from "expo-status-bar";
+import AccentColorPicker from "../components/AccentColorPicker";
+import { DEFAULT_ACCENT } from "../utils/accent";
+import { useAccent } from "../hooks/useAccent";
 
 const SettingsScreen: React.FC<any> = () => {
   const dispatch = useDispatch();
   const user: any = useSelector((state: RootState) => state.user);
+  const accent = useAccent();
   const {
     colors: { muted },
   } = useTheme();
 
   const navigation = useNavigation<NativeStackNavigationProp<AppStackParamList>>();
   const [currencies, setCurrencies] = useState<any[]>([]);
-  const [notificationsAllowed, toggleNotificationsAllowed] = useState<boolean>(false);
   const [theme, toggleTheme] = useState<boolean>(user.theme === "light" ? false : true);
 
   const [isCurrencyOpen, setIsCurrencyOpen] = useState<boolean>(false);
+  const [accentPickerOpen, setAccentPickerOpen] = useState<boolean>(false);
+  const [isCycleOpen, setIsCycleOpen] = useState<boolean>(false);
   const { toggleColorMode } = useColorMode();
 
   useLayoutEffect(() => {
@@ -98,6 +112,35 @@ const SettingsScreen: React.FC<any> = () => {
   const onSelectCurrency = (currencyValue: string) => {
     setIsCurrencyOpen(false);
     applyCurrency(currencyValue);
+  };
+
+  // "1" -> "1st", "25" -> "25th", etc.
+  const ordinal = (n: number) => {
+    const s = ["th", "st", "nd", "rd"];
+    const v = n % 100;
+    return n + (s[(v - 20) % 10] || s[v] || s[0]);
+  };
+
+  const cycleStartDay = user.cycleStartDay || 1;
+  // Compact value for the settings row (the "(calendar month)" hint lives in the picker).
+  const cycleLabel = ordinal(cycleStartDay);
+
+  const applyCycleStartDay = async (day: number) => {
+    setIsCycleOpen(false);
+    if (day === cycleStartDay) return;
+    try {
+      await UserService.updateCycleStartDay(user.id, day);
+    } catch (err) {
+      console.log("updateCycleStartDay failed:", err);
+      Alert.alert("Error", "Could not save the month start day. Please try again.");
+      return;
+    }
+    dispatch(setCycleStartDayAction(day));
+    // Snap the viewing period to the accounting month "now" falls in under the
+    // new cycle, so Home/History reload onto the correct period.
+    const { month, year } = getCurrentPeriod(day);
+    dispatch(setMonthAction(month));
+    dispatch(setYearAction(year));
   };
 
   const applyCurrency = async (currencyValue: string) => {
@@ -205,6 +248,14 @@ const SettingsScreen: React.FC<any> = () => {
           disabled: false,
         },
         {
+          icon: <MaterialCommunityIcons name="calendar-refresh" size={18} color={COLORS.MUTED[50]} />,
+          color: "#0d9488",
+          label: "Monthly costs",
+          onPress: () => navigation.navigate("MonthlyCosts"),
+          rightElement: <FontAwesome name="angle-right" size={26} color={muted[900]} />,
+          disabled: false,
+        },
+        {
           icon: <MaterialCommunityIcons name="currency-eur" size={18} color={COLORS.MUTED[50]} />,
           color: "#fe9400",
           label: "Currency ",
@@ -214,29 +265,25 @@ const SettingsScreen: React.FC<any> = () => {
               <Text color="purple.700" fontFamily="SourceBold" fontSize={17}>
                 {user.symbol} {user.currency}
               </Text>
-              <Ionicons name="chevron-down" size={18} color={COLORS.PURPLE[700]} />
+              <Ionicons name="chevron-down" size={18} color={accent[700]} />
             </HStack>
           ),
           disabled: false,
         },
         {
-          icon: (
-            <Ionicons
-              name={notificationsAllowed ? "notifications" : "notifications-off"}
-              size={18}
-              color={COLORS.MUTED[50]}
-            />
-          ),
-          color: "primary.500",
-          label: "Notifications",
-          onPress: () => toggleNotificationsAllowed(!notificationsAllowed),
+          icon: <Ionicons name="calendar" size={18} color={COLORS.MUTED[50]} />,
+          color: "#0ea5e9",
+          label: "Month starts on",
+          onPress: () => setIsCycleOpen(true),
           rightElement: (
-            <Switch
-              value={notificationsAllowed}
-              onValueChange={() => toggleNotificationsAllowed(!notificationsAllowed)}
-            />
+            <HStack alignItems="center" space={1}>
+              <Text color="purple.700" fontFamily="SourceBold" fontSize={17}>
+                {cycleLabel}
+              </Text>
+              <Ionicons name="chevron-down" size={18} color={accent[700]} />
+            </HStack>
           ),
-          disabled: true,
+          disabled: false,
         },
         {
           icon: <Ionicons name={theme ? "moon" : "sunny"} size={18} color={COLORS.MUTED[50]} />,
@@ -245,6 +292,19 @@ const SettingsScreen: React.FC<any> = () => {
 
           rightElement: <Switch value={theme} onValueChange={() => switchTheme()} />,
           disabled: true,
+        },
+        {
+          icon: <Ionicons name="color-palette" size={18} color={COLORS.MUTED[50]} />,
+          color: user.accentColor || DEFAULT_ACCENT,
+          label: "Accent color",
+          onPress: () => setAccentPickerOpen(true),
+          rightElement: (
+            <HStack alignItems="center" space={2}>
+              <Circle size="22px" style={{ backgroundColor: user.accentColor || DEFAULT_ACCENT }} />
+              <FontAwesome name="angle-right" size={26} color={muted[900]} />
+            </HStack>
+          ),
+          disabled: false,
         },
         {
           icon: <MaterialCommunityIcons name="eraser" size={18} color={COLORS.MUTED[50]} />,
@@ -269,14 +329,6 @@ const SettingsScreen: React.FC<any> = () => {
           disabled: false,
         },
         {
-          icon: <Ionicons name="newspaper-sharp" size={18} color={COLORS.MUTED[50]} />,
-          color: "green.500",
-          label: "About",
-          rightElement: <FontAwesome name="angle-right" size={26} color={muted[900]} />,
-          onPress: () => navigation.navigate("About"),
-          disabled: false,
-        },
-        {
           icon: <AntDesign name="logout" size={18} color={COLORS.MUTED[50]} />,
           color: "yellow.500",
           label: "Logout",
@@ -293,7 +345,7 @@ const SettingsScreen: React.FC<any> = () => {
       <StatusBar style="light" />
       <ScrollView contentContainerStyle={{ paddingVertical: 24 }}>
         {SECTIONS.map(({ header, items }, key) => (
-          <View paddingX={"24px"} key={key}>
+          <View paddingX={"24px"} key={key} w="100%" maxW="560px" alignSelf="center">
             <Text
               paddingY={"12px"}
               fontSize={14}
@@ -310,15 +362,16 @@ const SettingsScreen: React.FC<any> = () => {
                     <HStack
                       alignItems="center"
                       justifyContent="space-between"
-                      height={50}
-                      bg={user.theme === "dark" ? "muted.50" : "muted.200"}
-                      borderRadius={8}
-                      paddingX={"12px"}>
-                      <HStack space="12px" alignItems="center">
+                      height={58}
+                      bg={user.theme === "dark" ? "muted.50" : "muted.50"}
+                      borderRadius={16}
+                      shadow={1}
+                      paddingX={"14px"}>
+                      <HStack space="12px" alignItems="center" flex={1} mr={2}>
                         <Circle bg={color} size="32px">
                           {icon}
                         </Circle>
-                        <Text fontSize={17} color="muted.900">
+                        <Text fontSize={17} color="muted.900" numberOfLines={1} flexShrink={1}>
                           {label}
                         </Text>
                       </HStack>
@@ -331,6 +384,8 @@ const SettingsScreen: React.FC<any> = () => {
           </View>
         ))}
       </ScrollView>
+
+      <AccentColorPicker isOpen={accentPickerOpen} onClose={() => setAccentPickerOpen(false)} />
 
       <Actionsheet isOpen={isCurrencyOpen} onClose={() => setIsCurrencyOpen(false)}>
         <Actionsheet.Content
@@ -361,6 +416,45 @@ const SettingsScreen: React.FC<any> = () => {
                       : "#262626",
                   }}>
                   {item.label}
+                </Actionsheet.Item>
+              );
+            })}
+          </ScrollView>
+        </Actionsheet.Content>
+      </Actionsheet>
+
+      <Actionsheet isOpen={isCycleOpen} onClose={() => setIsCycleOpen(false)}>
+        <Actionsheet.Content
+          bg={user.theme === "dark" ? "#1f2937" : "white"}
+          style={{ backgroundColor: user.theme === "dark" ? "#1f2937" : "#ffffff" }}>
+          <Text fontFamily="SourceBold" fontSize={15} color="muted.500" px={4} pt={2} pb={1}>
+            Day the month/budget cycle starts
+          </Text>
+          <ScrollView w="100%" maxH={400}>
+            {Array.from({ length: 28 }, (_, i) => i + 1).map((day) => {
+              const isSelected = day === cycleStartDay;
+              return (
+                <Actionsheet.Item
+                  key={day}
+                  onPress={() => applyCycleStartDay(day)}
+                  bg={isSelected ? "purple.100" : user.theme === "dark" ? "#1f2937" : "#ffffff"}
+                  _hover={{
+                    bg: isSelected
+                      ? "purple.100"
+                      : user.theme === "dark"
+                      ? "#374151"
+                      : COLORS.MUTED[200],
+                  }}
+                  _pressed={{ bg: user.theme === "dark" ? "#374151" : COLORS.MUTED[200] }}
+                  _text={{
+                    fontFamily: "SourceBold",
+                    color: isSelected
+                      ? "purple.700"
+                      : user.theme === "dark"
+                      ? "#ffffff"
+                      : "#262626",
+                  }}>
+                  {day === 1 ? "1st (calendar month)" : ordinal(day)}
                 </Actionsheet.Item>
               );
             })}

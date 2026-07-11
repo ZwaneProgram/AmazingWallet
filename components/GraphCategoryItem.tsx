@@ -42,7 +42,7 @@ const GraphCategoryItem: React.FC<GraphCategoryItemProps> = ({ graphCategory, ex
             borderRadius={24}
             width="60px"
             height="60px"
-            style={{ backgroundColor: color }}
+            style={{ backgroundColor: color || "#7e22ce" }}
             justifyContent="center"
             alignItems="center">
             {getCategoryIcon(name, 22, COLORS.MUTED[50])}

@@ -10,6 +10,7 @@ import COLORS from "../colors";
 import { NavigationProp, ParamListBase } from "@react-navigation/native";
 import { useDispatch } from "react-redux";
 import { onBoard } from "../redux/onboardReducer";
+import { useAccent } from "../hooks/useAccent";
 
 enum Direction {
   Back = "Back",
@@ -54,6 +55,7 @@ const OnboardingScreen: React.FC<OnBoardingScreenProps> = ({ navigation }) => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const { width, height } = useWindowDimensions();
   const dispatch = useDispatch();
+  const accent = useAccent();
 
   const scrollX = useRef(new Animated.Value(0)).current;
   const flatListRef = useRef<FlatList<any>>(null);
@@ -158,7 +160,7 @@ const OnboardingScreen: React.FC<OnBoardingScreenProps> = ({ navigation }) => {
             <Ionicons
               name="arrow-back-outline"
               size={24}
-              color={COLORS.PURPLE[700]}
+              color={accent[700]}
             />
           }
         >
@@ -176,7 +178,7 @@ const OnboardingScreen: React.FC<OnBoardingScreenProps> = ({ navigation }) => {
             <Ionicons
               name="arrow-forward-outline"
               size={24}
-              color={COLORS.PURPLE[700]}
+              color={accent[700]}
             />
           }
         >

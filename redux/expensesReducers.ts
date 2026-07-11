@@ -4,7 +4,10 @@ import { Budget } from "../interfaces/Budget";
 import { Category } from "../interfaces/Category";
 import { Expense } from "../interfaces/Expense";
 import { Income } from "../interfaces/Income";
-import { Wallet } from "../interfaces/Wallet";
+import { Wallet, WalletGroup } from "../interfaces/Wallet";
+import { MonthlyCost } from "../interfaces/MonthlyCost";
+import { computeCategoryRollup } from "../utils/categoryRollup";
+import { getPeriodRange } from "../utils/period";
 import { RootState } from "./store";
 
 const todayDate = moment().format("YYYY-MM-DD");
@@ -17,6 +20,8 @@ interface initialStateProps {
   categories: Category[];
   budgets: Budget[];
   wallets: Wallet[];
+  walletGroups: WalletGroup[];
+  monthlyCosts: MonthlyCost[];
 }
 
 const initialState: initialStateProps = {
@@ -27,6 +32,8 @@ const initialState: initialStateProps = {
   categories: [],
   budgets: [],
   wallets: [],
+  walletGroups: [],
+  monthlyCosts: [],
 };
 
 const expensesReducer = createSlice({
@@ -74,6 +81,12 @@ const expensesReducer = createSlice({
     setWallets: (state, action) => {
       state.wallets = action.payload;
     },
+    setWalletGroups: (state, action) => {
+      state.walletGroups = action.payload;
+    },
+    setMonthlyCosts: (state, action) => {
+      state.monthlyCosts = action.payload;
+    },
     editBudgets: (state, action) => {
       let budgets = action.payload;
 
@@ -120,6 +133,8 @@ export const setCategoriesAction = expensesReducer.actions.setCategories;
 export const setBudgetsAction = expensesReducer.actions.setBudgets;
 export const editBudgetsAction = expensesReducer.actions.editBudgets;
 export const setWalletsAction = expensesReducer.actions.setWallets;
+export const setWalletGroupsAction = expensesReducer.actions.setWalletGroups;
+export const setMonthlyCostsAction = expensesReducer.actions.setMonthlyCosts;
 
 //selectors
 const generalState = (state: RootState) => state.expenses;
@@ -134,19 +149,14 @@ export const todayTotalSelector = createSelector([generalState], (expenses: any)
 export const monthTotalSelector = createSelector([globalState], (globalState: any) => {
   const currentMonth = globalState.user.month;
   const currentYear = globalState.user.year || moment().year();
+  const cycleStartDay = globalState.user.cycleStartDay || 1;
   const parsedMonth = moment(currentMonth, "MMMM");
   if (parsedMonth.isValid()) {
-    const monthNumber = parsedMonth.month();
-    const startOfMonth = moment()
-      .year(currentYear)
-      .month(monthNumber)
-      .startOf("month")
-      .format("YYYY-MM-DD");
-    const endOfMonth = moment()
-      .year(currentYear)
-      .month(monthNumber)
-      .endOf("month")
-      .format("YYYY-MM-DD");
+    const { start: startOfMonth, end: endOfMonth } = getPeriodRange(
+      currentMonth,
+      currentYear,
+      cycleStartDay
+    );
     return globalState.expenses.expenses
       .filter(
         (expense: Expense) => expense.payDate >= startOfMonth && expense.payDate <= endOfMonth
@@ -190,107 +200,35 @@ export const monthlyBudgetsSelector = createSelector([generalState], (expenses: 
 
 // Rolls month expenses up the 2-level category tree: each parent gets its own direct spend
 // plus the spend of all its sub-categories. Pure client-side; powers Graph, Home budget cards,
-// and the hierarchical budget view.
-export const categoryRollupSelector = createSelector([generalState], (state: any) => {
-  const cats: Category[] = state.categories || [];
-  const byId = new Map<number, Category>();
-  cats.forEach((c: Category) => {
-    if (c.id != null) byId.set(c.id, c);
-  });
-
-  interface Sub {
-    id: number;
-    name: string;
-    color?: string;
-    icon?: any;
-    total: number;
-  }
-  interface Parent {
-    id: number;
-    name: string;
-    color?: string;
-    icon?: any;
-    directTotal: number;
-    subTotals: Map<number, Sub>;
-    effectiveTotal: number;
-  }
-  const parents = new Map<number, Parent>();
-
-  const ensure = (pid: number): Parent => {
-    let p = parents.get(pid);
-    if (!p) {
-      const pc = byId.get(pid);
-      p = {
-        id: pid,
-        name: pc?.name ?? "Other",
-        color: pc?.color,
-        icon: pc?.icon,
-        directTotal: 0,
-        subTotals: new Map(),
-        effectiveTotal: 0,
-      };
-      parents.set(pid, p);
-    }
-    return p;
-  };
-
-  (state.expenses as Expense[]).forEach((e: Expense) => {
-    let catId = e.categoryId;
-    if (catId == null && e.name) {
-      catId = cats.find((c: Category) => c.name === e.name)?.id;
-    }
-    if (catId == null) return;
-    const cat = byId.get(catId);
-    const isSub = !!cat?.parentId;
-    const pid = (isSub ? cat!.parentId! : cat?.id ?? catId) as number;
-    const p = ensure(pid);
-    p.effectiveTotal += e.amount;
-    if (isSub && cat) {
-      const sub = p.subTotals.get(cat.id!) ?? {
-        id: cat.id!,
-        name: cat.name,
-        color: cat.color,
-        icon: cat.icon,
-        total: 0,
-      };
-      sub.total += e.amount;
-      p.subTotals.set(cat.id!, sub);
-    } else {
-      p.directTotal += e.amount;
-    }
-  });
-
-  return Array.from(parents.values())
-    .map((p) => ({
-      id: p.id,
-      name: p.name,
-      color: p.color,
-      icon: p.icon,
-      directTotal: p.directTotal,
-      subTotals: Array.from(p.subTotals.values()).sort((a, b) => b.total - a.total),
-      effectiveTotal: p.effectiveTotal,
-    }))
-    .sort((a, b) => b.effectiveTotal - a.effectiveTotal);
-});
+// and the hierarchical budget view. Shares its implementation with the Graph screen via
+// computeCategoryRollup so both stay in sync.
+export const categoryRollupSelector = createSelector([generalState], (state: any) =>
+  computeCategoryRollup(state.expenses as Expense[], state.categories as Category[])
+);
 
 export const walletsSelector = createSelector([generalState], (expenses: any) => expenses.wallets);
+
+export const walletGroupsSelector = createSelector(
+  [generalState],
+  (expenses: any) => expenses.walletGroups
+);
+
+export const monthlyCostsSelector = createSelector(
+  [generalState],
+  (expenses: any) => expenses.monthlyCosts
+);
 
 export const monthIncomeTotalSelector = createSelector([globalState], (globalState: any) => {
   const currentMonth = globalState.user.month;
   const currentYear = globalState.user.year || moment().year();
+  const cycleStartDay = globalState.user.cycleStartDay || 1;
   const parsedMonth = moment(currentMonth, "MMMM");
   if (parsedMonth.isValid()) {
-    const monthNumber = parsedMonth.month();
-    const startOfMonth = moment()
-      .year(currentYear)
-      .month(monthNumber)
-      .startOf("month")
-      .format("YYYY-MM-DD");
-    const endOfMonth = moment()
-      .year(currentYear)
-      .month(monthNumber)
-      .endOf("month")
-      .format("YYYY-MM-DD");
+    const { start: startOfMonth, end: endOfMonth } = getPeriodRange(
+      currentMonth,
+      currentYear,
+      cycleStartDay
+    );
     return globalState.expenses.incomes
       .filter((income: Income) => income.payDate >= startOfMonth && income.payDate <= endOfMonth)
       .reduce((accumulator: number, currentValue: Income) => accumulator + currentValue.amount, 0);

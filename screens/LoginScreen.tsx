@@ -22,7 +22,7 @@ const LoginScreen: React.FC<LoginScreenProps> = ({ navigation }) => {
     <SafeAreaView style={{ flex: 1 }}>
       <StatusBar style={user.theme === "dark" ? "light" : "dark"} />
       <KeyboardAwareScrollView showsVerticalScrollIndicator={false}>
-        <VStack space={10} px={5} paddingTop={24}>
+        <VStack space={10} px={5} paddingTop={24} w="100%" maxW="440px" alignSelf="center">
           <LoginForm navigation={navigation} />
 
           {/* <HStack alignItems="center" space={3}>

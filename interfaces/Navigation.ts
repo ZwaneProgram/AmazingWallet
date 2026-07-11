@@ -16,6 +16,7 @@ export type AppStackParamList = {
   ManageCategories: undefined;
   ManageWallets: undefined;
   WalletsOverview: undefined;
+  MonthlyCosts: undefined;
 };
 
 export type StackConfig = {

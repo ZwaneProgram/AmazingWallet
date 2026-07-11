@@ -25,6 +25,7 @@ import { renderCategoryIcon, ICON_OPTIONS, COLOR_PALETTE } from "../utils/catego
 import EZInput from "../components/shared/EZInput";
 import EZButton from "../components/shared/EZButton";
 import { authInput } from "../commonStyles";
+import { useAccent } from "../hooks/useAccent";
 
 interface CategoryManagerScreenProps {
   navigation: NavigationProp<ParamListBase>;
@@ -36,8 +37,10 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
   const dispatch = useDispatch();
   const user: any = useSelector((state: RootState) => state.user);
   const categories = useSelector(categoriesSelector);
+  const accent = useAccent();
 
   const [loading, setLoading] = useState<boolean>(true);
+  const [activeType, setActiveType] = useState<"expense" | "income">("expense");
 
   const [modalOpen, setModalOpen] = useState<boolean>(false);
   const [mode, setMode] = useState<Mode>("add");
@@ -63,7 +66,9 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
     load();
   }, []);
 
-  const parents = categories.filter((c: Category) => !c.parentId);
+  const parents = categories.filter(
+    (c: Category) => !c.parentId && (c.type ?? "expense") === activeType
+  );
   const childrenOf = (id?: number) => categories.filter((c: Category) => c.parentId === id);
 
   const openAdd = () => {
@@ -139,6 +144,7 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
           color,
           icon,
           parentId,
+          type: activeType,
         });
       }
       await refresh();
@@ -186,10 +192,10 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
       alignItems="center"
       justifyContent="space-between"
       bg="muted.50"
-      borderRadius={14}
+      borderRadius={18}
       shadow={1}
       px={4}
-      py={3}
+      py={3.5}
       ml={isSub ? 8 : 0}>
       <HStack alignItems="center" space={3} flex={1}>
         <Box
@@ -198,7 +204,7 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
           borderRadius={14}
           justifyContent="center"
           alignItems="center"
-          style={{ backgroundColor: category.color }}>
+          style={{ backgroundColor: category.color || "#7e22ce" }}>
           {renderCategoryIcon(category.icon, category.name, isSub ? 17 : 22, "#fff")}
         </Box>
         <Text fontFamily="SourceBold" fontSize={isSub ? 15 : 17} numberOfLines={1} flex={1}>
@@ -208,7 +214,7 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
       <HStack space={1} alignItems="center">
         {!isSub && (
           <TouchableOpacity onPress={() => openAddSub(category)} style={{ padding: 6 }}>
-            <Feather name="plus" size={20} color={COLORS.PURPLE[700]} />
+            <Feather name="plus" size={20} color={accent[700]} />
           </TouchableOpacity>
         )}
         <TouchableOpacity onPress={() => openEdit(category)} style={{ padding: 6 }}>
@@ -234,9 +240,29 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
           </TouchableOpacity>
         </HStack>
 
+        {/* Expense / Income tabs */}
+        <HStack bg="muted.50" borderRadius={12} p={1} mb={4}>
+          {(["expense", "income"] as const).map((t) => {
+            const active = activeType === t;
+            return (
+              <Pressable key={t} flex={1} onPress={() => setActiveType(t)}>
+                <View
+                  py={2}
+                  borderRadius={10}
+                  alignItems="center"
+                  bg={active ? (t === "income" ? "emerald.500" : "purple.700") : "transparent"}>
+                  <Text fontFamily="SourceBold" fontSize={15} color={active ? "white" : "muted.500"}>
+                    {t === "income" ? "Income" : "Expense"}
+                  </Text>
+                </View>
+              </Pressable>
+            );
+          })}
+        </HStack>
+
         <Pressable onPress={openAdd} _pressed={{ opacity: 0.7 }} mb={4}>
           <HStack
-            bg="purple.700"
+            bg={activeType === "income" ? "emerald.500" : "purple.700"}
             borderRadius={12}
             height="48px"
             alignItems="center"
@@ -244,7 +270,7 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
             space={2}>
             <Feather name="plus" size={20} color="#fff" />
             <Text fontFamily="SourceBold" fontSize={16} color="white">
-              Add category
+              Add {activeType} category
             </Text>
           </HStack>
         </Pressable>
@@ -266,8 +292,8 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
               borderRadius={10}
               height="46px"
               px={6}
-              _text={{ fontFamily: "SourceBold", fontSize: 15, color: COLORS.PURPLE[700] }}
-              leftIcon={<MaterialCommunityIcons name="auto-fix" size={18} color={COLORS.PURPLE[700]} />}>
+              _text={{ fontFamily: "SourceBold", fontSize: 15, color: accent[700] }}
+              leftIcon={<MaterialCommunityIcons name="auto-fix" size={18} color={accent[700]} />}>
               Add default categories
             </EZButton>
           </View>
@@ -303,7 +329,7 @@ const CategoryManagerScreen: React.FC<CategoryManagerScreenProps> = ({ navigatio
                   borderRadius={16}
                   justifyContent="center"
                   alignItems="center"
-                  style={{ backgroundColor: color }}>
+                  style={{ backgroundColor: color || "#7e22ce" }}>
                   {renderCategoryIcon(icon, name, 24, "#fff")}
                 </Box>
                 <Text fontFamily="SourceBold" fontSize={20}>

@@ -14,7 +14,7 @@ const ResetPasswordScreen: React.FC<any> = () => {
     <SafeAreaView style={{ flex: 1 }}>
       <StatusBar style={user.theme === "dark" ? "light" : "dark"} />
       <KeyboardAwareScrollView showsVerticalScrollIndicator={false}>
-        <VStack space={10} px={5} paddingTop={10}>
+        <VStack space={10} px={5} paddingTop={10} w="100%" maxW="440px" alignSelf="center">
           <ResetPasswordForm />
         </VStack>
       </KeyboardAwareScrollView>

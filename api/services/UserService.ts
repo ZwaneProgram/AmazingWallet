@@ -244,9 +244,18 @@ const verifyPassword = async (email: string, password: string): Promise<boolean>
   }
 };
 
+const updateCycleStartDay = async (userId: number, cycleStartDay: number): Promise<void> => {
+  const { error } = await supabase
+    .from(USERS)
+    .update({ cycle_start_day: cycleStartDay })
+    .eq("id", userId);
+  if (error) throw error;
+};
+
 export const UserService = {
   registerUser,
   loginUser,
+  updateCycleStartDay,
   getUserBudgets,
   saveUserBudgets,
   convertUserBudgetsCurrency,

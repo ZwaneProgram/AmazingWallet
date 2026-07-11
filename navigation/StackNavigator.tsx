@@ -17,6 +17,7 @@ import ChangePasswordScreen from "../screens/ChangePasswordScreen";
 import CategoryManagerScreen from "../screens/CategoryManagerScreen";
 import WalletManagerScreen from "../screens/WalletManagerScreen";
 import WalletsOverviewScreen from "../screens/WalletsOverviewScreen";
+import MonthlyCostsScreen from "../screens/MonthlyCostsScreen";
 
 const Stack = createNativeStackNavigator<AppStackParamList>();
 
@@ -70,6 +71,11 @@ const StackNavigator: React.FC<any> = () => {
     {
       name: "WalletsOverview",
       component: WalletsOverviewScreen,
+      options: { presentation: "containedModal", headerShown: false },
+    },
+    {
+      name: "MonthlyCosts",
+      component: MonthlyCostsScreen,
       options: { presentation: "containedModal", headerShown: false },
     },
     {

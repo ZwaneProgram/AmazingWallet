@@ -1,4 +1,4 @@
-import { NavigationProp, ParamListBase } from "@react-navigation/native";
+import { NavigationProp, ParamListBase, useIsFocused } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -8,32 +8,51 @@ import {
   HStack,
   ScrollView,
   Pressable,
+  Spinner,
   useTheme,
 } from "native-base";
-import React, { useLayoutEffect, useState, Fragment } from "react";
+import React, { useEffect, useLayoutEffect, useMemo, useState, Fragment } from "react";
+import { TouchableOpacity } from "react-native";
 import PieChart from "react-native-pie-chart";
 import { useSelector } from "react-redux";
+import moment from "moment";
+import { getPeriodRange } from "../utils/period";
 import { RootState } from "../redux/store";
 import { StatusBar } from "expo-status-bar";
-import { categoryRollupSelector, monthTotalSelector } from "../redux/expensesReducers";
+import { categoriesSelector } from "../redux/expensesReducers";
+import { computeCategoryRollup } from "../utils/categoryRollup";
+import { ExpenseService } from "../api/services/ExpenseService";
 import EZHeaderTitle from "../components/shared/EzHeaderTitle";
+import MonthYearPickerModal from "../components/MonthYearPickerModal";
 import { NoChartData } from "../assets/SVG";
 import { renderCategoryIcon } from "../utils/categoryIcons";
 import COLORS from "../colors";
-import { AntDesign } from "@expo/vector-icons";
+import { useAccent } from "../hooks/useAccent";
+import { AntDesign, Feather } from "@expo/vector-icons";
+import { SHADOWS } from "../theme/designSystem";
 
 interface GraphScreenProps {
   navigation: NavigationProp<ParamListBase>;
 }
 
 const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
+  const isFocused = useIsFocused();
   const user = useSelector((state: RootState) => state.user);
-  const { expenses } = useSelector((state: RootState) => state.expenses);
-  const rollup = useSelector(categoryRollupSelector);
-  const monthTotal = useSelector(monthTotalSelector);
+  const categories = useSelector(categoriesSelector);
+  const accent = useAccent();
   const {
     colors: { muted },
   } = useTheme();
+
+  // The Graph keeps its OWN period, independent of Home. It starts mirroring
+  // whatever month Home is on, then the user can page it freely without
+  // touching Home's selection.
+  const [graphMonth, setGraphMonth] = useState<string>(user.month || moment().format("MMMM"));
+  const [graphYear, setGraphYear] = useState<number>(user.year || moment().year());
+  const [graphMode, setGraphMode] = useState<"month" | "all">("month");
+  const [pickerOpen, setPickerOpen] = useState<boolean>(false);
+  const [graphExpenses, setGraphExpenses] = useState<any[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
 
   const [expanded, setExpanded] = useState<Record<number, boolean>>({});
 
@@ -43,7 +62,62 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
     });
   }, [navigation]);
 
-  const hasData = expenses && expenses.length > 0 && rollup.length > 0;
+  const loadExpenses = async () => {
+    let startOfMonth: string;
+    let endOfMonth: string;
+    if (graphMode === "all") {
+      startOfMonth = moment().year(graphYear).startOf("year").format("YYYY-MM-DD");
+      endOfMonth = moment().year(graphYear).endOf("year").format("YYYY-MM-DD");
+    } else {
+      const parsedMonth = moment(graphMonth, "MMMM");
+      if (!parsedMonth.isValid()) return;
+      ({ start: startOfMonth, end: endOfMonth } = getPeriodRange(
+        graphMonth,
+        graphYear,
+        user.cycleStartDay || 1
+      ));
+    }
+
+    setLoading(true);
+    const data = await ExpenseService.getMonthExpenses(
+      user.id,
+      startOfMonth,
+      endOfMonth,
+      user.activeWalletId
+    );
+    setGraphExpenses(data ?? []);
+    setLoading(false);
+  };
+
+  // Reload whenever the period, the active wallet, or focus changes (so newly
+  // added expenses show up when the user returns to this tab).
+  useEffect(() => {
+    if (isFocused) {
+      loadExpenses();
+    }
+  }, [graphMonth, graphYear, graphMode, user.activeWalletId, isFocused]);
+
+  // Arrows page months in month-mode, years in all-mode.
+  const shiftPeriod = (delta: number) => {
+    if (graphMode === "all") {
+      setGraphYear((y) => y + delta);
+      return;
+    }
+    const next = moment().year(graphYear).month(moment(graphMonth, "MMMM").month()).add(delta, "month");
+    setGraphMonth(next.format("MMMM"));
+    setGraphYear(next.year());
+  };
+
+  const rollup = useMemo(
+    () => computeCategoryRollup(graphExpenses as any, categories),
+    [graphExpenses, categories]
+  );
+  const monthTotal = useMemo(
+    () => graphExpenses.reduce((acc: number, e: any) => acc + Number(e.amount), 0),
+    [graphExpenses]
+  );
+
+  const hasData = graphExpenses.length > 0 && rollup.length > 0;
   const series = hasData ? rollup.map((r: any) => r.effectiveTotal) : [1];
   const colors = hasData
     ? rollup.map((r: any) => r.color || COLORS.MUTED[400])
@@ -52,30 +126,68 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
   const toggle = (id: number) => setExpanded((prev) => ({ ...prev, [id]: !prev[id] }));
 
   const openCategory = (name: string, catId: number, subIds: number[]) => {
-    const list = (expenses as any[]).filter(
+    const list = (graphExpenses as any[]).filter(
       (e: any) => e.categoryId === catId || subIds.includes(e.categoryId)
     );
     (navigation as any).navigate("CategoryExpenses", { expenses: list, name });
   };
 
   return (
-    <View pt={10} flex={1} alignItems="center" flexDirection="column" style={{ gap: 20 }}>
+    <View pt={6} flex={1} alignItems="center" flexDirection="column" w="100%" maxW="640px" alignSelf="center" style={{ gap: 16 }}>
       <StatusBar style="light" />
+
+      {/* Period picker — independent of Home */}
+      <HStack w="90%" alignItems="center" justifyContent="space-between" px={1}>
+        <TouchableOpacity
+          onPress={() => shiftPeriod(-1)}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <AntDesign name="left" size={22} color={accent[700]} />
+        </TouchableOpacity>
+        <Pressable onPress={() => setPickerOpen(true)} _pressed={{ opacity: 0.6 }}>
+          <HStack
+            space={2}
+            alignItems="center"
+            px={4}
+            py={2}
+            borderRadius={20}
+            style={SHADOWS.pill as any}
+            bg={user.theme === "dark" ? "muted.50" : "muted.50"}>
+            <Feather
+              name="calendar"
+              size={14}
+              color={user.theme === "dark" ? COLORS.MUTED[300] : COLORS.MUTED[500]}
+            />
+            <Text fontFamily="SourceBold" fontSize={16}>
+              {graphMode === "all" ? `All ${graphYear}` : `${graphMonth} ${graphYear}`}
+            </Text>
+            <AntDesign
+              name="caret-down"
+              size={10}
+              color={user.theme === "dark" ? COLORS.MUTED[300] : COLORS.MUTED[500]}
+            />
+          </HStack>
+        </Pressable>
+        <TouchableOpacity
+          onPress={() => shiftPeriod(1)}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}>
+          <AntDesign name="right" size={22} color={accent[700]} />
+        </TouchableOpacity>
+      </HStack>
+
       <Box
         flexDirection="row"
         justifyContent={hasData ? "space-between" : "center"}
         w="90%"
-        py={4}
+        py={5}
         px={2}
-        style={{
-          shadowColor: "#171717",
-          shadowOffset: { width: 0, height: 0 },
-          shadowOpacity: 0.1,
-          shadowRadius: 4,
-        }}
+        shadow={2}
         bg="muted.50"
-        borderRadius={20}>
-        {hasData ? (
+        borderRadius={22}>
+        {loading ? (
+          <View w="100%" alignItems="center" justifyContent="center" py={16}>
+            <Spinner color="purple.700" size="lg" />
+          </View>
+        ) : hasData ? (
           <Fragment>
             <Box bg="muted.50" style={{ alignItems: "center", justifyContent: "center" }}>
               <PieChart
@@ -145,7 +257,7 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
                         borderRadius={24}
                         width="60px"
                         height="60px"
-                        style={{ backgroundColor: parent.color || COLORS.PURPLE[700] }}
+                        style={{ backgroundColor: parent.color || accent[700] }}
                         justifyContent="center"
                         alignItems="center">
                         {renderCategoryIcon(parent.icon, parent.name, 22, COLORS.MUTED[50])}
@@ -199,7 +311,7 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
                               borderRadius={12}
                               justifyContent="center"
                               alignItems="center"
-                              style={{ backgroundColor: sub.color || COLORS.PURPLE[700] }}>
+                              style={{ backgroundColor: sub.color || accent[700] }}>
                               {renderCategoryIcon(sub.icon, sub.name, 16, COLORS.MUTED[50])}
                             </Box>
                             <Text fontFamily="SourceBold" fontSize={14}>
@@ -219,6 +331,23 @@ const GraphScreen: React.FC<GraphScreenProps> = ({ navigation }) => {
           })}
         </VStack>
       </ScrollView>
+
+      <MonthYearPickerModal
+        isOpen={pickerOpen}
+        onClose={() => setPickerOpen(false)}
+        month={graphMonth}
+        year={graphYear}
+        allActive={graphMode === "all"}
+        onSelect={(month, year) => {
+          setGraphMode("month");
+          setGraphMonth(month);
+          setGraphYear(year);
+        }}
+        onSelectAll={(year) => {
+          setGraphMode("all");
+          setGraphYear(year);
+        }}
+      />
     </View>
   );
 };

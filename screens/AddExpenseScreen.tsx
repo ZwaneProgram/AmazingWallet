@@ -1,6 +1,6 @@
 import React, { useState, useRef } from "react";
-import { HStack, Text, VStack, View, Pressable, Box, ScrollView, useTheme } from "native-base";
-import { SafeAreaView, FlatList, TouchableOpacity } from "react-native";
+import { HStack, Text, VStack, View, Pressable, Box, useTheme } from "native-base";
+import { SafeAreaView, TouchableOpacity } from "react-native";
 import { AntDesign, FontAwesome, Ionicons } from "@expo/vector-icons";
 import { NavigationProp, ParamListBase, RouteProp } from "@react-navigation/native";
 import EZInput from "../components/shared/EZInput";
@@ -13,6 +13,7 @@ import { expenseSchema } from "../schemas/expenseSchema";
 import { incomeSchema } from "../schemas/incomeSchema";
 import EZButton from "../components/shared/EZButton";
 import CalculatorModal from "../components/CalculatorModal";
+import CalendarModal from "../components/CalendarModal";
 import COLORS from "../colors";
 import { ExpenseService } from "../api/services/ExpenseService";
 import { IncomeService } from "../api/services/IncomeService";
@@ -20,6 +21,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { RootState } from "../redux/store";
 import { StatusBar } from "expo-status-bar";
 import { addExpenseAction, addIncomeAction, categoriesSelector, walletsSelector } from "../redux/expensesReducers";
+import { useAccent } from "../hooks/useAccent";
 import moment from "moment";
 import { authInput } from "../commonStyles";
 
@@ -38,14 +40,24 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
   } = useTheme();
 
   const user = useSelector((state: RootState) => state.user);
+  const isDark = user.theme === "dark";
   const categories = useSelector(categoriesSelector);
   const wallets = useSelector(walletsSelector);
-  const activeWalletName = wallets.find((w: any) => w.id === user.activeWalletId)?.name ?? "";
+  const accent = useAccent();
+  const activeWallet = wallets.find((w: any) => w.id === user.activeWalletId);
+  const activeWalletName = activeWallet?.name ?? "";
+  const activeWalletExcluded = !!(activeWallet as any)?.excludeFromTotal;
   const [loading, setLoading] = useState<boolean>(false);
   const [calcOpen, setCalcOpen] = useState<boolean>(false);
   const [type, setType] = useState<TransactionType>(route?.params?.type ?? "expense");
+  // Back-dating: defaults to today, picker limited to past + today.
+  const [selectedDate, setSelectedDate] = useState<string>(moment().format("YYYY-MM-DD"));
+  const [dateOpen, setDateOpen] = useState<boolean>(false);
 
   const isIncome = type === "income";
+  const today = moment().format("YYYY-MM-DD");
+  const dateLabel =
+    selectedDate === today ? "Today" : moment(selectedDate).format("ddd, MMM D, YYYY");
 
   const formik = useFormik({
     initialValues: {
@@ -62,19 +74,25 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
         const numericFormat = Number(formatAmount);
 
         if (isIncome) {
+          const incomeCategory = categories.find((item: Category) => item.name === category);
           const income = {
             userId: Number(user.id),
             amount: numericFormat,
             description,
             walletId: user.activeWalletId,
+            categoryId: incomeCategory?.id,
+            payDate: selectedDate,
           };
 
-          await IncomeService.addIncome(income);
+          const createdIncome = await IncomeService.addIncome(income);
 
           dispatch(
             addIncomeAction({
               ...income,
-              payDate: moment().format("YYYY-MM-DD"),
+              id: createdIncome.id,
+              createdAt: new Date().toISOString(),
+              name: incomeCategory?.name,
+              color: incomeCategory?.color,
             })
           );
 
@@ -90,15 +108,16 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
           amount: numericFormat,
           description,
           walletId: user.activeWalletId,
+          payDate: selectedDate,
         };
 
-        const today = moment().format("YYYY-MM-DD");
-        await ExpenseService.AddExpense(expense);
+        const createdExpense = await ExpenseService.AddExpense(expense);
 
         dispatch(
           addExpenseAction({
             ...expense,
-            payDate: today,
+            id: createdExpense.id,
+            createdAt: new Date().toISOString(),
             name: category,
             color: currentCategory.color,
           })
@@ -136,17 +155,21 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
       return;
     }
     setType(nextType);
+    formik.setFieldValue("category", "");
     formik.setErrors({});
     formik.setTouched({});
   };
 
-  const accentColor = isIncome ? COLORS.EMERALD[500] : COLORS.PURPLE[700];
+  const accentColor = isIncome ? COLORS.EMERALD[500] : accent[700];
 
-  // 2-level category picker: grid shows parents; a sub row appears for the selected parent.
-  const parents = (categories as Category[]).filter((c: Category) => !c.parentId);
+  // 2-level category picker, scoped to the current type (expense vs income).
+  const typeCategories = (categories as Category[]).filter(
+    (c: Category) => (c.type ?? "expense") === type
+  );
+  const parents = typeCategories.filter((c: Category) => !c.parentId);
   const childrenOf = (id?: number) =>
-    (categories as Category[]).filter((c: Category) => c.parentId === id);
-  const selectedCat = (categories as Category[]).find((c: Category) => c.name === values.category);
+    typeCategories.filter((c: Category) => c.parentId === id);
+  const selectedCat = typeCategories.find((c: Category) => c.name === values.category);
   const selectedParent = selectedCat
     ? selectedCat.parentId
       ? (categories as Category[]).find((c: Category) => c.id === selectedCat.parentId)
@@ -172,16 +195,16 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
         <View flex={1} pt={16} alignItems="center" justifyContent="space-between">
           <VStack alignItems="center" width="100%" maxW={520} px={6} space={8}>
             {/* Segmented Expense / Income toggle */}
-            <HStack bg={user.theme === "dark" ? "muted.50" : "muted.100"} borderRadius={14} p={1} width="100%">
+            <HStack bg={user.theme === "dark" ? "muted.50" : "muted.100"} borderRadius={16} p={1} width="100%">
               {(["expense", "income"] as TransactionType[]).map((t) => {
                 const active = type === t;
                 return (
                   <Pressable key={t} flex={1} onPress={() => switchType(t)}>
                     <View
                       py={2.5}
-                      borderRadius={11}
+                      borderRadius={13}
                       alignItems="center"
-                      bg={active ? (t === "income" ? "emerald.500" : "purple.700") : "transparent"}>
+                      bg={active ? (t === "income" ? "emerald.500" : "danger.500") : "transparent"}>
                       <Text
                         fontFamily="SourceBold"
                         fontSize={16}
@@ -195,9 +218,19 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
             </HStack>
 
             {activeWalletName ? (
-              <Text fontFamily="SourceSansPro" fontSize={14} color={muted[500]} textAlign="center">
-                Adding to: {activeWalletName}
-              </Text>
+              <VStack alignItems="center" space={0.5}>
+                <Text fontFamily="SourceSansPro" fontSize={14} color={muted[500]} textAlign="center">
+                  Adding to: {activeWalletName}
+                </Text>
+                {activeWalletExcluded ? (
+                  <HStack alignItems="center" space={1}>
+                    <Ionicons name="eye-off-outline" size={12} color={muted[400]} />
+                    <Text fontFamily="SourceSansPro" fontSize={12} color={muted[400]}>
+                      Not counted in your total balance
+                    </Text>
+                  </HStack>
+                ) : null}
+              </VStack>
             ) : null}
 
             <VStack space={4} alignItems="center" width="100%">
@@ -211,8 +244,9 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                 type="text"
                 value={values.amount}
                 onChangeText={(e: string) => handleValue("amount", e)}
-                label={`Enter amount ${user.symbol ?? ""}`}
+                label={`AMOUNT${user.symbol ? ` (${user.symbol})` : ""}`}
                 placeholder="0"
+                fontSize={22}
                 borderRadius={12}
                 borderColor="muted.100"
                 InputRightElement={
@@ -229,96 +263,153 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                 error={touched.amount && errors.amount}
               />
 
-              {!isIncome && (
+              {(
                 <>
                   <Text alignSelf="flex-start" fontFamily="SourceSansPro" fontSize={20}>
-                    Category
+                    {isIncome ? "Category (optional)" : "Category"}
                   </Text>
-                  <FlatList
-                    style={{
-                      width: "100%",
-                      paddingTop: 5,
-                      paddingBottom: 5,
-                    }}
-                    numColumns={2}
-                    showsVerticalScrollIndicator={false}
-                    ItemSeparatorComponent={() => <View margin={4} />}
-                    data={parents}
-                    keyExtractor={(item: Category) => String(item.id)}
-                    renderItem={({ item }) => (
-                      <CategoryItem
-                        disabled={false}
-                        selectedCategory={selectedParentName}
-                        category={item}
-                        selectCategory={selectCategory}
-                      />
-                    )}
-                  />
+                  <Box
+                    flexDirection="row"
+                    flexWrap="wrap"
+                    width="100%"
+                    style={{ paddingTop: 5, paddingBottom: 5 }}>
+                    {(parents as Category[]).map((item: Category) => (
+                      <Box key={String(item.id)} width="50%" mb={3} alignItems="center">
+                        <CategoryItem
+                          disabled={false}
+                          selectedCategory={selectedParentName}
+                          category={item}
+                          selectCategory={selectCategory}
+                        />
+                      </Box>
+                    ))}
+                  </Box>
 
                   {selectedParentSubs.length > 0 && (
-                    <VStack alignSelf="flex-start" width="100%" space={2}>
-                      <Text fontFamily="SourceSansPro" fontSize={16}>
-                        Subcategory (optional)
-                      </Text>
-                      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                        <HStack space={2}>
-                          <Pressable onPress={() => selectCategory(selectedParent!.name)}>
-                            <Box
-                              px={3}
-                              py={2}
-                              borderRadius={12}
-                              borderWidth={1.5}
-                              borderColor={
+                    <Box
+                      width="100%"
+                      bg={isDark ? "#1f2937" : "muted.100"}
+                      borderRadius={16}
+                      p={3}
+                      style={{
+                        borderLeftWidth: 4,
+                        borderLeftColor: selectedParent!.color || accent[700],
+                      }}>
+                      {/* Header makes it read as a step *inside* the chosen category */}
+                      <HStack alignItems="center" space={2} mb={3}>
+                        <Box
+                          width="30px"
+                          height="30px"
+                          borderRadius={10}
+                          justifyContent="center"
+                          alignItems="center"
+                          style={{ backgroundColor: selectedParent!.color || accent[700] }}>
+                          {renderCategoryIcon(selectedParent!.icon, selectedParent!.name, 17, "#fff")}
+                        </Box>
+                        <VStack>
+                          <Text fontFamily="SourceBold" fontSize={15}>
+                            {selectedParent!.name}
+                          </Text>
+                          <Text fontFamily="SourceSansPro" fontSize={12} color="muted.400">
+                            Pick a subcategory (optional)
+                          </Text>
+                        </VStack>
+                      </HStack>
+
+                      <Box flexDirection="row" flexWrap="wrap" style={{ marginHorizontal: -4 }}>
+                        {/* "General" = the parent itself, no sub */}
+                        <Pressable
+                          onPress={() => selectCategory(selectedParent!.name)}
+                          style={{ margin: 4 }}>
+                          <Box
+                            px={3}
+                            py={2}
+                            borderRadius={12}
+                            borderWidth={1.5}
+                            borderColor={
+                              values.category === selectedParent!.name
+                                ? COLORS.EMERALD[400]
+                                : isDark
+                                ? "#374151"
+                                : "muted.200"
+                            }
+                            bg={
+                              values.category === selectedParent!.name
+                                ? isDark
+                                  ? "rgba(52,211,153,0.18)"
+                                  : "#ecfdf5"
+                                : isDark
+                                ? "#111827"
+                                : "muted.50"
+                            }>
+                            <Text
+                              fontFamily="SourceBold"
+                              fontSize={14}
+                              color={
                                 values.category === selectedParent!.name
-                                  ? COLORS.EMERALD[400]
-                                  : "muted.200"
-                              }
-                              bg={values.category === selectedParent!.name ? "emerald.50" : "muted.50"}>
-                              <Text
-                                fontFamily="SourceBold"
-                                fontSize={14}
-                                color={
-                                  values.category === selectedParent!.name ? "#262626" : undefined
+                                  ? isDark
+                                    ? COLORS.EMERALD[300]
+                                    : COLORS.EMERALD[500]
+                                  : undefined
+                              }>
+                              General
+                            </Text>
+                          </Box>
+                        </Pressable>
+
+                        {selectedParentSubs.map((sub: Category) => {
+                          const subActive = values.category === sub.name;
+                          return (
+                            <Pressable
+                              key={sub.id}
+                              onPress={() => selectCategory(sub.name)}
+                              style={{ margin: 4 }}>
+                              <HStack
+                                alignItems="center"
+                                space={2}
+                                px={3}
+                                py={2}
+                                borderRadius={12}
+                                borderWidth={1.5}
+                                borderColor={
+                                  subActive ? COLORS.EMERALD[400] : isDark ? "#374151" : "muted.200"
+                                }
+                                bg={
+                                  subActive
+                                    ? isDark
+                                      ? "rgba(52,211,153,0.18)"
+                                      : "#ecfdf5"
+                                    : isDark
+                                    ? "#111827"
+                                    : "muted.50"
                                 }>
-                                {selectedParent!.name}
-                              </Text>
-                            </Box>
-                          </Pressable>
-                          {selectedParentSubs.map((sub: Category) => {
-                            const subActive = values.category === sub.name;
-                            return (
-                              <Pressable key={sub.id} onPress={() => selectCategory(sub.name)}>
-                                <HStack
+                                <Box
+                                  width="26px"
+                                  height="26px"
+                                  borderRadius={10}
+                                  justifyContent="center"
                                   alignItems="center"
-                                  space={2}
-                                  px={3}
-                                  py={2}
-                                  borderRadius={12}
-                                  borderWidth={1.5}
-                                  borderColor={subActive ? COLORS.EMERALD[400] : "muted.200"}
-                                  bg={subActive ? "emerald.50" : "muted.50"}>
-                                  <Box
-                                    width="26px"
-                                    height="26px"
-                                    borderRadius={10}
-                                    justifyContent="center"
-                                    alignItems="center"
-                                    style={{ backgroundColor: sub.color }}>
-                                    {renderCategoryIcon(sub.icon, sub.name, 15, "#fff")}
-                                  </Box>
-                                  <Text
-                                    fontFamily="SourceBold"
-                                    fontSize={14}
-                                    color={subActive ? "#262626" : undefined}>
-                                    {sub.name}
-                                  </Text>
-                                </HStack>
-                              </Pressable>
-                            );
-                          })}
-                        </HStack>
-                      </ScrollView>
-                    </VStack>
+                                  style={{ backgroundColor: sub.color || accent[700] }}>
+                                  {renderCategoryIcon(sub.icon, sub.name, 15, "#fff")}
+                                </Box>
+                                <Text
+                                  fontFamily="SourceBold"
+                                  fontSize={14}
+                                  color={
+                                    subActive
+                                      ? isDark
+                                        ? COLORS.EMERALD[300]
+                                        : COLORS.EMERALD[500]
+                                      : undefined
+                                  }>
+                                  {sub.name}
+                                </Text>
+                              </HStack>
+                            </Pressable>
+                          );
+                        })}
+                      </Box>
+                    </Box>
                   )}
 
                   {touched.category && errors.category && (
@@ -331,6 +422,31 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
                   )}
                 </>
               )}
+
+              {/* Date picker — defaults to today, allows back-dating */}
+              <Pressable width="100%" onPress={() => setDateOpen(true)} _pressed={{ opacity: 0.6 }}>
+                <HStack
+                  alignItems="center"
+                  justifyContent="space-between"
+                  borderWidth={1.5}
+                  borderColor="muted.200"
+                  borderRadius={12}
+                  px={4}
+                  py={3}>
+                  <HStack alignItems="center" space={2}>
+                    <Ionicons name="calendar-outline" size={20} color={accentColor} />
+                    <Text fontFamily="SourceSansPro" fontSize={16} color={muted[700]}>
+                      Date
+                    </Text>
+                  </HStack>
+                  <HStack alignItems="center" space={1}>
+                    <Text fontFamily="SourceBold" fontSize={16} color={accentColor}>
+                      {dateLabel}
+                    </Text>
+                    <Ionicons name="chevron-down" size={18} color={accentColor} />
+                  </HStack>
+                </HStack>
+              </Pressable>
 
               <EZInput
                 style={authInput}
@@ -372,6 +488,15 @@ const AddExpenseScreen: React.FC<AddExpenseScreenProps> = ({ navigation, route }
         initialValue={values.amount}
         accentColor={accentColor}
         onResult={(value: string) => handleValue("amount", value)}
+      />
+
+      <CalendarModal
+        isOpen={dateOpen}
+        onClose={() => setDateOpen(false)}
+        mode="single"
+        value={selectedDate}
+        maxDate={today}
+        onSelect={(d) => setSelectedDate(d)}
       />
     </SafeAreaView>
   );

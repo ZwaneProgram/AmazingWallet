@@ -6,6 +6,18 @@ export interface Wallet {
   color?: string | null;
   isDefault?: boolean;
   overallBudget?: number | null;
+  excludeFromTotal?: boolean;
+  groupId?: number | null;
+  createdAt?: string;
+}
+
+export interface WalletGroup {
+  id?: number;
+  userId?: number;
+  name: string;
+  color?: string | null;
+  icon?: string | null;
+  sortOrder?: number;
   createdAt?: string;
 }
 

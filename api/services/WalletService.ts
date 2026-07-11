@@ -1,5 +1,5 @@
 import { supabase } from "../supabase";
-import { WALLETS } from "../../constants/Tables";
+import { WALLETS, WALLET_TRANSFERS } from "../../constants/Tables";
 import { GET_WALLET_SUMMARIES } from "../../constants/PostgresFunctions";
 import { Wallet, WalletSummary } from "../../interfaces/Wallet";
 import { UserService } from "./UserService";
@@ -12,6 +12,8 @@ const mapWallet = (row: any): Wallet => ({
   color: row.color ?? null,
   isDefault: row.is_default ?? false,
   overallBudget: row.overall_budget ?? null,
+  excludeFromTotal: row.exclude_from_total ?? false,
+  groupId: row.group_id ?? null,
   createdAt: row.created_at,
 });
 
@@ -36,6 +38,8 @@ const createWallet = async (input: {
   name: string;
   icon?: string | null;
   color?: string | null;
+  excludeFromTotal?: boolean;
+  groupId?: number | null;
 }): Promise<Wallet> => {
   const { data, error } = await supabase
     .from(WALLETS)
@@ -45,6 +49,8 @@ const createWallet = async (input: {
       icon: input.icon ?? null,
       color: input.color ?? null,
       is_default: false,
+      exclude_from_total: input.excludeFromTotal ?? false,
+      group_id: input.groupId ?? null,
     })
     .select()
     .single();
@@ -54,11 +60,23 @@ const createWallet = async (input: {
 
 const updateWallet = async (
   id: number,
-  fields: { name: string; icon?: string | null; color?: string | null }
+  fields: {
+    name: string;
+    icon?: string | null;
+    color?: string | null;
+    excludeFromTotal?: boolean;
+    groupId?: number | null;
+  }
 ): Promise<void> => {
   const { error } = await supabase
     .from(WALLETS)
-    .update({ name: fields.name, icon: fields.icon ?? null, color: fields.color ?? null })
+    .update({
+      name: fields.name,
+      icon: fields.icon ?? null,
+      color: fields.color ?? null,
+      exclude_from_total: fields.excludeFromTotal ?? false,
+      group_id: fields.groupId ?? null,
+    })
     .eq("id", id);
   if (error) throw error;
 };
@@ -156,6 +174,55 @@ const getWalletSummaries = async (
   }
 };
 
+// --- Transfers between wallets ---------------------------------------------
+// A transfer just moves money; it is NOT an income or expense, so it lives in
+// its own table and never touches the expense/income/budget aggregations.
+
+const createTransfer = async (input: {
+  userId: number;
+  fromWalletId: number;
+  toWalletId: number;
+  amount: number;
+  description?: string;
+}): Promise<void> => {
+  const { error } = await supabase.from(WALLET_TRANSFERS).insert({
+    user_id: input.userId,
+    from_wallet_id: input.fromWalletId,
+    to_wallet_id: input.toWalletId,
+    amount: input.amount,
+    description: input.description ?? null,
+  });
+  if (error) throw error;
+};
+
+const getAllTransfers = async (userId: number) => {
+  try {
+    const { data, error } = await supabase
+      .from(WALLET_TRANSFERS)
+      .select("*")
+      .eq("user_id", userId)
+      .order("date", { ascending: false });
+    if (error) throw error;
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      amount: row.amount,
+      description: row.description,
+      payDate: row.date,
+      createdAt: row.created_at,
+      fromWalletId: row.from_wallet_id,
+      toWalletId: row.to_wallet_id,
+    }));
+  } catch (error) {
+    console.log("getAllTransfers failed:", error);
+    return [];
+  }
+};
+
+const deleteTransfer = async (id: number): Promise<void> => {
+  const { error } = await supabase.from(WALLET_TRANSFERS).delete().eq("id", id);
+  if (error) throw error;
+};
+
 export const WalletService = {
   getUserWallets,
   createWallet,
@@ -165,4 +232,7 @@ export const WalletService = {
   deleteWallet,
   seedDefaultWallet,
   getWalletSummaries,
+  createTransfer,
+  getAllTransfers,
+  deleteTransfer,
 };

@@ -1,6 +1,9 @@
-// Safe arithmetic evaluator (no eval) — supports + - * / , parentheses and unary minus.
+// Safe arithmetic evaluator (no eval) — supports + - * / , parentheses, unary
+// minus and a contextual percent (phone-calculator style):
+//   200 + 10%  = 220     200 - 10% = 180
+//   200 * 10%  = 20      200 / 10% = 2000     50% = 0.5
 
-type Tok = { t: "num" | "op" | "lp" | "rp"; v: string };
+type Tok = { t: "num" | "op" | "lp" | "rp" | "pct"; v: string };
 
 const tokenize = (input: string): Tok[] | null => {
   const src = input
@@ -34,6 +37,11 @@ const tokenize = (input: string): Tok[] | null => {
       i++;
       continue;
     }
+    if (ch === "%") {
+      tokens.push({ t: "pct", v: ch });
+      i++;
+      continue;
+    }
     if (/[0-9.]/.test(ch)) {
       let num = "";
       while (i < src.length && /[0-9.]/.test(src[i])) {
@@ -62,61 +70,80 @@ export const evaluateExpression = (expression: string): number | null => {
   const peek = () => tokens[pos];
   const next = () => tokens[pos++];
 
-  const parseExpr = (): number => {
-    let value = parseTerm();
+  // Each level returns the computed value plus `pct`, true only when the node is
+  // a bare percentage (e.g. "10%"). The additive level uses that flag to apply
+  // the percentage relative to its left operand.
+  type Node = { value: number; pct: boolean };
+
+  const parseExpr = (): Node => {
+    let left = parseTerm();
     while (peek() && peek().t === "op" && (peek().v === "+" || peek().v === "-")) {
       const op = next().v;
       const rhs = parseTerm();
-      value = op === "+" ? value + rhs : value - rhs;
+      // "a + b%" means a + (a * b/100); "a + b" is plain addition.
+      const delta = rhs.pct ? left.value * rhs.value : rhs.value;
+      left = { value: op === "+" ? left.value + delta : left.value - delta, pct: false };
     }
-    return value;
+    return left;
   };
 
-  const parseTerm = (): number => {
-    let value = parseFactor();
+  const parseTerm = (): Node => {
+    let left = parseFactor();
     while (peek() && peek().t === "op" && (peek().v === "*" || peek().v === "/")) {
       const op = next().v;
       const rhs = parseFactor();
-      value = op === "*" ? value * rhs : value / rhs;
+      // "a * b%" → a * (b/100); "a / b%" → a / (b/100). rhs.value already holds
+      // the b/100 fraction when it was a percentage.
+      left = { value: op === "*" ? left.value * rhs.value : left.value / rhs.value, pct: false };
     }
-    return value;
+    return left;
   };
 
-  const parseFactor = (): number => {
+  const parseFactor = (): Node => {
     const tok = peek();
     if (!tok) {
       throw new Error("unexpected end");
     }
     if (tok.t === "op" && tok.v === "-") {
       next();
-      return -parseFactor();
+      const f = parseFactor();
+      return { value: -f.value, pct: f.pct };
     }
     if (tok.t === "op" && tok.v === "+") {
       next();
       return parseFactor();
     }
+
+    let node: Node;
     if (tok.t === "num") {
       next();
-      return parseFloat(tok.v);
-    }
-    if (tok.t === "lp") {
+      node = { value: parseFloat(tok.v), pct: false };
+    } else if (tok.t === "lp") {
       next();
-      const value = parseExpr();
+      const inner = parseExpr();
       if (!peek() || peek().t !== "rp") {
         throw new Error("missing closing paren");
       }
       next();
-      return value;
+      node = { value: inner.value, pct: false };
+    } else {
+      throw new Error("unexpected token");
     }
-    throw new Error("unexpected token");
+
+    // A trailing % turns the factor into a fraction and flags it for the caller.
+    if (peek() && peek().t === "pct") {
+      next();
+      node = { value: node.value / 100, pct: true };
+    }
+    return node;
   };
 
   try {
     const result = parseExpr();
-    if (pos !== tokens.length || result === null || !isFinite(result)) {
+    if (pos !== tokens.length || result === null || !isFinite(result.value)) {
       return null;
     }
-    return result;
+    return result.value;
   } catch {
     return null;
   }

@@ -4,29 +4,37 @@ import { Income } from "../../interfaces/Income";
 import { getCurrentDate } from "../../utils/getCurrentDate";
 import { supabase } from "../supabase";
 
-const addIncome = async (income: Income) => {
-  const { amount, description, userId, walletId } = income;
+// Returns the inserted row's id + date (see AddExpense) so Redux holds the real id.
+const addIncome = async (income: Income): Promise<{ id: number; payDate: string }> => {
+  const { amount, description, userId, walletId, categoryId, payDate } = income;
 
-  const currentDate = getCurrentDate();
+  // Use the caller-supplied date when back-dating; otherwise today.
+  const date = payDate || getCurrentDate();
 
-  const { error } = await supabase.from(INCOMES).insert({
-    user_id: userId,
-    amount,
-    description,
-    date: currentDate,
-    wallet_id: walletId,
-  });
+  const { data, error } = await supabase
+    .from(INCOMES)
+    .insert({
+      user_id: userId,
+      amount,
+      description,
+      date,
+      wallet_id: walletId,
+      category_id: categoryId ?? null,
+    })
+    .select("id, date")
+    .single();
 
   if (error) {
     throw error;
   }
+  return { id: data.id, payDate: data.date };
 };
 
 const getMonthIncomes = async (userId: number, startOfMonth: string, endOfMonth: string, walletId: number) => {
   try {
     const { data, error } = await supabase
       .from(INCOMES)
-      .select("*")
+      .select("*, categories(name, color)")
       .eq("user_id", userId)
       .eq("wallet_id", walletId)
       .gte("date", startOfMonth)
@@ -42,6 +50,10 @@ const getMonthIncomes = async (userId: number, startOfMonth: string, endOfMonth:
       amount: row.amount,
       description: row.description,
       payDate: row.date,
+      createdAt: row.created_at,
+      categoryId: row.category_id,
+      name: row.categories?.name,
+      color: row.categories?.color,
     }));
   } catch (error) {
     console.log("getMonthIncomes failed:", error);
@@ -102,11 +114,54 @@ const getAllIncomes = async (userId: number, walletId: number) => {
   }
 };
 
-const updateIncome = async (id: number, fields: { amount: number; description?: string }) => {
-  const { error } = await supabase
-    .from(INCOMES)
-    .update({ amount: fields.amount, description: fields.description })
-    .eq("id", id);
+// Same as getAllIncomes but across every wallet, tagging each row with its
+// wallet_id so the History screen can label rows by wallet.
+const getAllIncomesEveryWallet = async (userId: number) => {
+  try {
+    const { data, error } = await supabase
+      .from(INCOMES)
+      .select("*, categories(name, color)")
+      .eq("user_id", userId)
+      .order("date", { ascending: false });
+
+    if (error) {
+      throw error;
+    }
+
+    return (data ?? []).map((row: any) => ({
+      id: row.id,
+      userId: row.user_id,
+      amount: row.amount,
+      description: row.description,
+      payDate: row.date,
+      createdAt: row.created_at,
+      walletId: row.wallet_id,
+      categoryId: row.category_id,
+      name: row.categories?.name,
+      color: row.categories?.color,
+    }));
+  } catch (error) {
+    console.log("getAllIncomesEveryWallet failed:", error);
+    return [];
+  }
+};
+
+const updateIncome = async (
+  id: number,
+  fields: { amount: number; description?: string; walletId?: number; categoryId?: number }
+) => {
+  const update: Record<string, any> = {
+    amount: fields.amount,
+    description: fields.description,
+  };
+  if (fields.walletId != null) {
+    update.wallet_id = fields.walletId;
+  }
+  if (fields.categoryId !== undefined) {
+    update.category_id = fields.categoryId ?? null;
+  }
+
+  const { error } = await supabase.from(INCOMES).update(update).eq("id", id);
 
   if (error) {
     throw error;
@@ -127,6 +182,7 @@ export const IncomeService = {
   convertIncomesCurrency,
   removeUserIncomes,
   getAllIncomes,
+  getAllIncomesEveryWallet,
   updateIncome,
   deleteIncome,
 };
